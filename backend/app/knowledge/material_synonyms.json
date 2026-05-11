@@ -1,0 +1,50 @@
+[
+    {
+        "id": "syn_1",
+        "alias": "Sariya",
+        "canonical": "TMT_Bar",
+        "context": "Common term for TMT bars in North India, especially in Hindi-speaking regions. 'Sariya' means reinforcement bar."
+    },
+    {
+        "id": "syn_2",
+        "alias": "Kamach dar",
+        "canonical": "Fe550",
+        "context": "Gujarati/Hindi slang meaning 'high strength'. Refers to Fe550 or higher grade TMT bars."
+    },
+    {
+        "id": "syn_3",
+        "alias": "Patti",
+        "canonical": "Flat_Bar",
+        "context": "Common term for flat steel bars or strips in North/West India."
+    },
+    {
+        "id": "syn_4",
+        "alias": "Chaddar",
+        "canonical": "Structural_Plate",
+        "context": "Informal term for steel plates or sheets, especially thicker plates."
+    },
+    {
+        "id": "syn_5",
+        "alias": "Loha",
+        "canonical": "Steel",
+        "context": "Generic Hindi term for steel or iron."    
+    },
+    {
+        "id": "syn_6",
+        "alias": "Rod",
+        "canonical": "TMT_Bar",
+        "context": "Generic term for steel reinforcement bars."
+    },
+    {
+        "id": "syn_7",
+        "alias": "Fe500",
+        "canonical": "Fe 500",
+        "context": "Common shorthand for Fe 500 grade TMT bars (50,000 psi tensile strength)."
+    },
+    {
+        "id": "syn_8",
+        "alias": "Fe550",
+        "canonical": "Fe 550",
+        "context": "Common shorthand for Fe 550 grade TMT bars (55,000 psi tensile strength)."
+    }
+]

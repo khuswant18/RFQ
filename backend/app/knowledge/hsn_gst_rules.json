@@ -1,0 +1,51 @@
+[
+    {
+        "id": "hsn_1",
+        "material": "TMT_Bar",
+        "hsn_code": "7213",
+        "gst_rate": "18%",
+        "description": "Bars and rods of iron or non-alloy steel"
+    },
+    {
+        "id": "hsn_2",
+        "material": "Structural_Plate",
+        "hsn_code": "7208",
+        "gst_rate": "18%",
+        "description": "Flat-rolled products of iron or non-alloy steel"
+    },
+    {
+        "id": "hsn_3",
+        "material": "Angle",
+        "hsn_code": "7216",
+        "gst_rate": "18%",
+        "description": "Angles, shapes and sections of iron or non-alloy steel"
+    },
+    {
+        "id": "hsn_4",
+        "material": "Channel",
+        "hsn_code": "7216",
+        "gst_rate": "18%",
+        "description": "Angles, shapes and sections of iron or non-alloy steel"
+    },
+    {
+        "id": "hsn_5",
+        "material": "Flat_Bar",
+        "hsn_code": "7214",
+        "gst_rate": "18%",
+        "description": "Bars and rods of iron or non-alloy steel"
+    },
+    {
+        "id": "hsn_6",
+        "material": "Square_Bar",
+        "hsn_code": "7214",
+        "gst_rate": "18%",
+        "description": "Bars and rods of iron or non-alloy steel"
+    },
+    {
+        "id": "hsn_7",
+        "material": "Pipe",
+        "hsn_code": "7306",
+        "gst_rate": "18%",
+        "description": "Tubes, pipes and hollow profiles of iron or steel"
+    }
+]

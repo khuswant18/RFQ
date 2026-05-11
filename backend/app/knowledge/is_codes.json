@@ -1,0 +1,20 @@
+{"is_codes": [
+    {
+        "id": "is_1786_2008",
+        "is_code": "IS 1786:2008",
+        "title": "High strength deformed steel bars and wires for concrete reinforcement",
+        "grades": ["Fe 415", "Fe 500", "Fe 500D", "Fe 550", "Fe 600"],
+        "diameter_range_mm": [6, 40],
+        "standard_lengths_ft": [20, 40],
+        "description": "Thermo-mechanically treated (TMT) steel bars for concrete reinforcement. Minimum yield strength specified. Fe415, Fe500, Fe500D, Fe550, and Fe600 grades available."
+    },
+    {
+        "id": "is_2062_2011",
+        "is_code": "IS 2062:2011",
+        "title": "Hot rolled low, medium and high tensile structural steel",
+        "grades": ["E250", "E350", "E410"],
+        "thickness_range_mm": [5, 100],
+        "width_range_mm": [600, 3000],
+        "description": "Structural steel for general building and construction purposes. E250, E350, and E410 grades with varying tensile strengths."
+    }
+]}

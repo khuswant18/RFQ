@@ -1,0 +1,30 @@
+[
+    {
+        "id": "lr_1",
+        "destination_pincode_prefix": "39",
+        "distance_km": 100,
+        "rate_per_ton": 500,
+        "description": "Gujarat intra-state delivery"
+    },
+    {
+        "id": "lr_2",
+        "destination_pincode_prefix": "40",
+        "distance_km": 300,
+        "rate_per_ton": 1200,
+        "description": "Maharashtra delivery"
+    },
+    {
+        "id": "lr_3",
+        "destination_pincode_prefix": "30",
+        "distance_km": 500,
+        "rate_per_ton": 1800,
+        "description": "Rajasthan delivery"
+    },
+    {
+        "id": "lr_4",
+        "destination_pincode_prefix": "11",
+        "distance_km": 1200,
+        "rate_per_ton": 3000,
+        "description": "Delhi delivery"
+    }
+]

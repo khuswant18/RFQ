@@ -1,0 +1,232 @@
+{% macro format_currency(value) %}
+₹{{ "{:.2f}".format(value) }}
+{% endmacro %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote {{ quote_number }}</title>
+    <style>
+        body {
+            font-family: 'Helvetica', Arial, sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+        }
+        
+        .header {
+            border-bottom: 3px solid #2c5aa0;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .company-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c5aa0;
+        }
+        
+        .company-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .quote-info {
+            text-align: right;
+            margin-top: -80px;
+        }
+        
+        .quote-number {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c5aa0;
+        }
+        
+        .quote-date {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .validity {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .buyer-info {
+            margin: 30px 0;
+        }
+        
+        .buyer-info h3 {
+            color: #2c5aa0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c5aa0;
+        }
+        
+        .totals {
+            margin-top: 30px;
+            width: 100%;
+        }
+        
+        .totals td {
+            border: none;
+            padding: 8px 0;
+        }
+        
+        .totals .label {
+            text-align: right;
+            padding-right: 20px;
+            color: #666;
+        }
+        
+        .totals .amount {
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .grand-total {
+            font-size: 18px;
+            color: #2c5aa0;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 3px solid #2c5aa0;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .bank-details {
+            margin-top: 20px;
+        }
+        
+        .notes {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">{{ company_name }}</div>
+        <div class="company-details">
+            GSTIN: {{ company_gstin }}<br>
+            Phone: +91 99999 99999<br>
+            Email: info@demoSteel.com
+        </div>
+    </div>
+    
+    <div class="quote-info">
+        <div class="quote-number">Quote #{{ quote_number }}</div>
+        <div class="quote-date">Date: {{ quote_date }}</div>
+        <div class="quote-date">Valid Until: {{ valid_until }}</div>
+    </div>
+    
+    <div class="validity">
+        <strong>Price Valid for 24 Hours</strong> — This quote is valid until {{ valid_until }} and subject to stock availability.
+    </div>
+    
+    <div class="buyer-info">
+        <h3>Buyer Information</h3>
+        <p><strong>Contact:</strong> {{ buyer_contact }}</p>
+        <p><strong>Location:</strong> {{ buyer_location }}</p>
+    </div>
+    
+    <h3>Line Items</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Material</th>
+                <th>Grade</th>
+                <th>Dimensions</th>
+                <th>Qty</th>
+                <th>Rate (₹/ton)</th>
+                <th>Amount (₹)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in line_items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.material }}</td>
+                <td>{{ item.grade }}</td>
+                <td>{{ item.dimensions }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ "{:.2f}".format(item.rate) }}</td>
+                <td>{{ "{:.2f}".format(item.amount) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <table class="totals">
+        <tr>
+            <td class="label">Subtotal:</td>
+            <td class="amount">{{ "{:.2f}".format(subtotal) }}</td>
+        </tr>
+        <tr>
+            <td class="label">Logistics & Loading:</td>
+            <td class="amount">{{ "{:.2f}".format(logistics_total) }}</td>
+        </tr>
+        <tr>
+            <td class="label">Margin ({{ margin_percent }}%):</td>
+            <td class="amount">{{ "{:.2f}".format(margin_amount) }}</td>
+        </tr>
+        <tr>
+            <td class="label">{{ gst_type }}:</td>
+            <td class="amount">{{ "{:.2f}".format(gst_amount) }}</td>
+        </tr>
+        <tr class="grand-total">
+            <td class="label">Grand Total:</td>
+            <td class="amount">{{ format_currency(grand_total) }}</td>
+        </tr>
+    </table>
+    
+    <div class="notes">
+        <h4>Notes & Terms:</h4>
+        <p>{{ notes }}</p>
+    </div>
+    
+    <div class="footer">
+        <p><strong>IS Standards Referenced:</strong> {{ is_codes_referenced | join(", ") }}</p>
+        <div class="bank-details">
+            <p><strong>Bank Details:</strong></p>
+            <p>{{ bank_details }}</p>
+        </div>
+    </div>
+</body>
+</html>
