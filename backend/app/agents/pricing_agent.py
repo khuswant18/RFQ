@@ -6,7 +6,12 @@ import json
 
 from app.core.groq_client import GroqClient
 from app.core.serper_client import SerperClient
-from app.core.rag.chroma_client import ChromaClient
+try:
+    from app.core.rag.chroma_client import ChromaClient
+    CHROMA_AVAILABLE = True
+except ImportError:
+    CHROMA_AVAILABLE = False
+
 from app.models.rfq import (
     ValidatedLineItem, WeightResult, CostBreakdown, 
     PricingResult, PriceResult
@@ -22,7 +27,11 @@ class PricingAgent:
     def __init__(self):
         self.groq = GroqClient()
         self.serper = SerperClient()
-        self.chroma = ChromaClient()
+        try:
+            self.chroma = ChromaClient()
+        except ImportError:
+            self.chroma = None
+            print("⚠️  ChromaDB not available. Pricing agent running in standalone mode.")
         self.redis = None  # Will be initialized with actual Redis client
         
         # Mock base prices for fallback

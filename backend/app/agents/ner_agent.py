@@ -3,7 +3,12 @@ import json
 from typing import List, Optional
 
 from app.core.groq_client import GroqClient
-from app.core.rag.chroma_client import ChromaClient
+try:
+    from app.core.rag.chroma_client import ChromaClient
+    CHROMA_AVAILABLE = True
+except ImportError:
+    CHROMA_AVAILABLE = False
+    
 from app.models.rfq import NERInput, NEROutput, LineItem
 
 
@@ -15,7 +20,11 @@ class NERAgent:
     
     def __init__(self):
         self.groq = GroqClient()
-        self.chroma = ChromaClient()
+        try:
+            self.chroma = ChromaClient()
+        except ImportError:
+            self.chroma = None
+            print("⚠️  ChromaDB not available. NER agent running without RAG.")
     
     SYSTEM_PROMPT = """You are an expert Indian Steel Metallurgist and procurement specialist.
 Your task is to extract structured entities from an RFQ document.

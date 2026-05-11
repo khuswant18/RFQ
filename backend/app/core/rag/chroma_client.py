@@ -1,15 +1,26 @@
 """ChromaDB client for RAG."""
-import os
+import os, sys
 from typing import List, Dict, Any
 
-from chromadb import Client, Settings
-from chromadb.config import Settings as ChromaSettings
+# ChromaDB is optional – graceful fallback when not installed
+try:
+    from chromadb import Client, Settings
+    from chromadb.config import Settings as ChromaSettings
+    CHROMADB_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    CHROMADB_AVAILABLE = False
+    class Client: pass
+    class Settings: pass
+    ChromaSettings = None
 
 
 class ChromaClient:
     """Wrapper for ChromaDB vector store operations."""
     
     def __init__(self, persist_directory: str = "data/chroma"):
+        if not CHROMADB_AVAILABLE:
+            raise ImportError("chromadb is not installed. Install it with: pip install chromadb")
+        
         self.persist_directory = persist_directory
         os.makedirs(persist_directory, exist_ok=True)
         
