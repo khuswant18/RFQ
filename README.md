@@ -1,6 +1,6 @@
 # Smart RFQ Intelligence Pipeline (SRIP)
 
-**Version:** 2.0 — Hackathon Build  
+**Version:** 2.0 
 **Architecture:** Agentic RAG (RLM-Inspired Multi-Agent System)  
 **Target Stack:** Python FastAPI · Groq LLMs · Serper Search · ChromaDB · React  
 **Domain:** Indian Steel MSMEs, Surat/Gujarat
@@ -87,7 +87,7 @@ GROQ_API_KEY_5=gsk_...
 # Serper (web search for live MCX prices)
 SERPER_API_KEY=...
 
-# WhatsApp (Twilio Sandbox for hackathon)
+# WhatsApp (Twilio Sandbox)
 TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
