@@ -108,6 +108,4 @@ Return JSON: { "extracted_text": "...", "confidence": 0.0-1.0, "language_detecte
         """Post-process extracted text."""
         # Remove extra whitespace
         text = " ".join(text.split())
-        # Fix common OCR errors in steel context
-        text = text.replace("0", "O")  # Diameters usually has numbers, not letter O
         return text

@@ -57,7 +57,7 @@ class PricingAgent:
         
         # Serper web search
         query = f"MCX steel price today {grade} TMT bar India per ton"
-        results = await self.serper.search(query, num=5)
+        results = self.serper.search(query, num=5)
         
         # Parse search results with LLM
         prompt = f"""

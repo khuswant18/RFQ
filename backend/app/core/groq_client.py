@@ -35,13 +35,22 @@ class GroqClient:
         
         self.key_rotator = self.keys and GroqKeyRotator(self.keys) or None
         self.base_url = "https://api.groq.com/openai/v1"
+
+    def _use_mock(self) -> bool:
+        return os.getenv("MOCK_GROQ", "true").lower() == "true"
     
     def call(self, system_prompt: str, user_prompt: str, 
              model: str = "llama3-70b-8192", temperature: float = 0.7,
              max_tokens: int = 4096) -> str:
         """Make a synchronous call to Groq API."""
         import requests
-        
+
+        if self._use_mock():
+            return self._mock_call(system_prompt, user_prompt, model)
+
+        if not self.key_rotator:
+            raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
+
         api_key = self.key_rotator.get_key()
         
         headers = {
@@ -58,11 +67,6 @@ class GroqClient:
             "temperature": temperature,
             "max_tokens": max_tokens
         }
-        
-        # For testing without actual API keys, return a mock response
-        import os
-        if os.getenv("MOCK_GROQ", "true").lower() == "true":
-            return self._mock_call(system_prompt, user_prompt, model)
         
         response = requests.post(
             f"{self.base_url}/chat/completions",
@@ -80,7 +84,13 @@ class GroqClient:
                          max_tokens: int = 4096) -> str:
         """Make an async call to Groq API."""
         import aiohttp
-        
+
+        if self._use_mock():
+            return self._mock_call(system_prompt, user_prompt, model)
+
+        if not self.key_rotator:
+            raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
+
         api_key = self.key_rotator.get_key()
         
         headers = {
@@ -98,11 +108,6 @@ class GroqClient:
             "max_tokens": max_tokens
         }
         
-        # For testing without actual API keys, return a mock response
-        import os
-        if os.getenv("MOCK_GROQ", "true").lower() == "true":
-            return self._mock_call(system_prompt, user_prompt, model)
-        
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.base_url}/chat/completions",
@@ -116,13 +121,15 @@ class GroqClient:
     def call_vision(self, system_prompt: str, image_data: str,
                     model: str = "llama3-70b-8192") -> Dict[str, Any]:
         """Make a vision call to Groq API for image understanding."""
-        # This is a simplified mock - actual implementation would use Groq's vision API
-        import os
-        if os.getenv("MOCK_GROQ", "true").lower() == "true":
+        if self._use_mock():
             return self._mock_vision_call(system_prompt, image_data)
-        
-        # Real implementation would encode image and send to Groq
-        pass
+
+        # Return low confidence to trigger OCR fallback (Tesseract).
+        return {
+            "extracted_text": "",
+            "confidence": 0.0,
+            "language_detected": "en"
+        }
     
     def _mock_call(self, system_prompt: str, user_prompt: str, model: str) -> str:
         """Return a mock response for testing."""

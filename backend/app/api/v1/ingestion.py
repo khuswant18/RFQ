@@ -1,6 +1,11 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from typing import Optional
+import os
+import threading
 import uuid
+
+from app.core.rfq_store import create_rfq
+from app.tasks.pipeline_tasks import process_rfq_pipeline
 
 router = APIRouter(tags=["ingestion"])
 
@@ -14,12 +19,31 @@ async def upload_rfq(file: UploadFile = File(...)):
     rfq_id = str(uuid.uuid4())
     
     # Save file to storage
-    file_path = f"storage/{rfq_id}_{file.filename}"
+    storage_dir = os.getenv("STORAGE_PATH", "storage")
+    os.makedirs(storage_dir, exist_ok=True)
+    safe_name = os.path.basename(file.filename)
+    file_path = os.path.join(storage_dir, f"{rfq_id}_{safe_name}")
     with open(file_path, "wb") as f:
         content = await file.read()
         f.write(content)
     
-    # TODO: Trigger Celery task for pipeline processing
+    create_rfq(
+        rfq_id=rfq_id,
+        source_channel="api",
+        file_type=file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else None,
+        file_path=file_path,
+        sender_contact=None
+    )
+
+    if hasattr(process_rfq_pipeline, "delay"):
+        process_rfq_pipeline.delay(rfq_id, file_path=file_path, source_channel="api")
+    else:
+        threading.Thread(
+            target=process_rfq_pipeline,
+            args=(rfq_id,),
+            kwargs={"file_path": file_path, "source_channel": "api"},
+            daemon=True
+        ).start()
     
     return {
         "rfq_id": rfq_id,
@@ -35,8 +59,29 @@ async def ingest_text(text: str, sender_contact: Optional[str] = None):
     Ingest raw text RFQ (from WhatsApp, email, etc.).
     """
     rfq_id = str(uuid.uuid4())
+
+    create_rfq(
+        rfq_id=rfq_id,
+        source_channel="api",
+        file_type="text",
+        raw_text=text,
+        sender_contact=sender_contact
+    )
     
-    # TODO: Trigger Celery task for pipeline processing
+    if hasattr(process_rfq_pipeline, "delay"):
+        process_rfq_pipeline.delay(
+            rfq_id,
+            raw_text=text,
+            sender_contact=sender_contact,
+            source_channel="api"
+        )
+    else:
+        threading.Thread(
+            target=process_rfq_pipeline,
+            args=(rfq_id,),
+            kwargs={"raw_text": text, "sender_contact": sender_contact, "source_channel": "api"},
+            daemon=True
+        ).start()
     
     return {
         "rfq_id": rfq_id,

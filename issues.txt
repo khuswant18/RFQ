@@ -1,0 +1,182 @@
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/AGENTS_SPECIFICATION.md#1-1), lines 1 to 400
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/api/v1/quotes.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/api/v1/webhook.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/models/rfq.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/tasks/pipeline_tasks.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/agents/orchestrator.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/api/v1/ingestion.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/api/v1/rfq.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/core/gst_logic.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/core/serper_client.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/core/steel_formulas.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/core/groq_client.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/main.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/agents/ocr_agent.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/agents/ner_agent.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/agents/pricing_agent.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/agents/gst_agent.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/agents/validator_agent.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/agents/quote_agent.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/agents/communication_agent.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/core/rag/chroma_client.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/core/rag/seed_knowledge.py)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/docker-compose.yml)
+
+Searched for files matching `**/test_api.py`, 1 match
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/frontend/src/pages/Dashboard.jsx)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/frontend/src/App.jsx)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/frontend/src/pages/Upload.jsx)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/frontend/src/pages/RFQDetail.jsx)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/frontend/src/pages/Dashboard.css)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/frontend/src/pages/Upload.css)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/frontend/src/pages/RFQDetail.css)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/frontend/src/App.css)
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/tests/test_api.py)
+
+Searched for regex `api_key = self.key_rotator.get_key\(\)` (`**/backend/app/core/groq_client.py`), 2 results
+
+Searched for text `file_path = f"storage/` (`**/backend/app/api/v1/ingestion.py`), 1 result
+
+Searched for text `TODO: Trigger Celery task` (`**/backend/app/api/v1/ingestion.py`), 2 results
+
+Searched for text `def process_rfq_pipeline` (`**/backend/app/tasks/pipeline_tasks.py`), 1 result
+
+Searched for regex `\{\{steps1-5\.merged\}\}` (`**/backend/app/agents/orchestrator.py`), 1 result
+
+Searched for text `self.chroma.query` (`**/backend/app/agents/ner_agent.py`), 2 results
+
+Searched for text `await self.serper.search` (`**/backend/app/agents/pricing_agent.py`), 1 result
+
+Searched for text `text.replace("0", "O")` (`**/backend/app/agents/ocr_agent.py`), 1 result
+
+Searched for regex `storage/quotes/\{context\.quote_number\}\.pdf` (`**/backend/app/agents/quote_agent.py`), 1 result
+
+Searched for regex `storage/quotes/QT-\{rfq_id\}\.pdf` (`**/backend/app/api/v1/quotes.py`), 1 result
+
+Searched for regex `media_url=\[media_url\]` (`**/backend/app/agents/communication_agent.py`), 1 result
+
+Searched for text `const mockData` (`**/frontend/src/pages/Dashboard.jsx`), 1 result
+
+Searched for regex `setTimeout\(` (`**/frontend/src/pages/Upload.jsx`), 1 result
+
+Searched for regex `total: 580000 \+ 5000 \* 1\.18` (`**/frontend/src/pages/RFQDetail.jsx`), 1 result
+
+Searched for regex `\.btn-danger` (`**/frontend/src/pages/RFQDetail.css`), 2 results
+
+Searched for text `/api/v1/rfq/upload` (`**/backend/tests/test_api.py`), 2 results
+
+Searched for regex `api_key = self.key_rotator.get_key\(\)` (`**/backend/app/core/groq_client.py`), 2 results
+
+Searched for text `/api/v1/rfq/upload` (`**/backend/app/api/v1/mock_api.py`), 1 result
+
+Searched for regex `with open\(file_path` (`**/backend/app/api/v1/ingestion.py`), 1 result
+
+Searched for text `self.chroma = None` (`**/backend/app/agents/ner_agent.py`), 1 result
+
+Searched for text `celery_app = Celery` (`**/backend/app/tasks/pipeline_tasks.py`), 1 result
+
+Searched for text `process_rfq_pipeline` (`**/backend/app/api/v1/ingestion.py`), no results
+
+Searched for text `process_rfq_pipeline` (`**/backend/app/main.py`), 1 result
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/api/v1/mock_api.py)
+
+Searched for regex `input_template=\{"entities"` (`**/backend/app/agents/orchestrator.py`), 1 result
+
+Searched for regex `line_items: List\[LineItem\]` (`**/backend/app/models/rfq.py`), 1 result
+
+Searched for text `logistics_rate` (`**/backend/app/agents/pricing_agent.py`), 2 results
+
+Searched for regex `unit_weight_kg if 'unit_weight_kg' in dir\(\)` (`**/backend/app/agents/pricing_agent.py`), 1 result
+
+Searched for text `def call_vision` (`**/backend/app/core/groq_client.py`), 1 result
+
+Searched for text `pass` (`**/backend/app/core/groq_client.py`), 1 result
+
+Searched for regex `allow_origins=\["\*"\]` (`**/backend/app/main.py`), 1 result
+
+Searched for regex `def search\(self, query: str` (`**/backend/app/core/serper_client.py`), 1 result
+
+Read [](file:///Users/mitulbhatia/Desktop/RFQ/backend/app/templates/quote_template.html)
+
+Searched for text `margin_percent` (`**/backend/app/templates/quote_template.html`), 1 result
+
+Searched for text `margin_amount` (`**/backend/app/models/rfq.py`), 2 results
+
+Searched for text `class QuoteContext` (`**/backend/app/models/rfq.py`), 1 result
+
+Searched for text `app.include_router` (`**/backend/app/main.py`), 4 results
+
+Searched for text `implement DB query` (`**/backend/app/api/v1/rfq.py`), 3 results
+
+Searched for text `status": "received"` (`**/backend/app/api/v1/rfq.py`), 1 result
+
+Searched for text `class AgentResult` (`**/AGENTS_SPECIFICATION.md`), 1 result
+
+Searched for regex `single \.run\(input: dict\)` (`**/AGENTS_SPECIFICATION.md`), no results
+
+Searched for regex `def run\(self, ocr_input` (`**/backend/app/agents/ocr_agent.py`), 1 result
+
+Searched for text `return OCROutput` (`**/backend/app/agents/ocr_agent.py`), 2 results
+
+Searched for regex `def run\(self, entities` (`**/backend/app/agents/validator_agent.py`), 1 result
+
+Review complete — there are several critical gaps that make the pipeline non-functional end-to-end. Findings are ordered by severity.
+
+**Findings**
+- Critical: Uploads never trigger processing — both ingestion endpoints stop at TODOs and `process_rfq_pipeline` is not registered as a Celery task, so RFQs never advance beyond “received.” ingestion.py ingestion.py pipeline_tasks.py
+- Critical: Orchestrator templates reference nonexistent outputs (`step2.output.entities` and `{{steps1-5.merged}}`), so any executor will fail to resolve inputs. orchestrator.py orchestrator.py rfq.py
+- Critical: NERAgent crashes when ChromaDB is missing because `self.chroma` can be `None` but `retrieve_steel_context` still calls `self.chroma.query`. ner_agent.py ner_agent.py ner_agent.py
+- Critical: Groq mock mode is broken — `call()`/`call_async()` access `self.key_rotator` even when no keys exist, so mock-only runs crash before the mock path. groq_client.py groq_client.py
+- High: Vision calls are stubbed (`pass`) in non-mock mode, so OCR in production returns `None` and fails. groq_client.py groq_client.py
+- High: PricingAgent awaits a synchronous `SerperClient.search`, which will raise “object is not awaitable.” pricing_agent.py serper_client.py
+- High: Quote filename mismatch — PDF is saved using `quote_number` but download endpoint expects `QT-{rfq_id}.pdf`, so downloads 404. quote_agent.py quotes.py
+- High: WhatsApp `media_url` uses a local file path, not a public URL, so Twilio will fail to attach media. communication_agent.py
+- Medium: OCR post-processing replaces every `0` with `O`, corrupting numeric dimensions/quantities (e.g., 10mm → 1Omm). ocr_agent.py
+- Medium: Upload path uses raw `file.filename` and doesn’t ensure the storage directory exists; this is path-traversal risk and can crash when `storage/` is missing. ingestion.py ingestion.py
+- Medium: RFQ endpoints are stubs with placeholder responses, so status/feed never reflect real data. rfq.py rfq.py rfq.py
+- Medium: Quote template expects `margin_percent`, but `QuoteContext` doesn’t provide it. quote_template.html rfq.py
+- Low: Frontend uses mock RFQs and a simulated upload; UI is disconnected from the backend. Dashboard.jsx Upload.jsx
+- Low: RFQ detail mock total is mathematically wrong (GST applied only to logistics). RFQDetail.jsx
+- Low: Reject button text is invisible due to matching background/text color. RFQDetail.css
+- Low: Tests target `/api/v1/rfq/upload`, which only exists in the unused mock API module, not in the app router. test_api.py test_api.py mock_api.py main.py
+
+**Assumptions / Gaps**
+- I did not validate the knowledge JSON content or external service credentials; review is from static inspection.
+- No tests were executed as part of this review.
+
+If you want, I can start fixing these in priority order. Pick one:
+1) Wire ingestion → Celery → agent execution end-to-end.  
+2) Fix Groq/Serper async + OCR stability issues.  
+3) Connect frontend to real APIs and remove mocks.

@@ -38,6 +38,19 @@ services:
     depends_on:
       - db
       - redis
+    volumes:
+      - storage_data:/app/storage
+
+  worker:
+    build: ./backend
+    command: celery -A app.tasks.pipeline_tasks worker --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_PATH=/app/storage
+    depends_on:
+      - redis
+    volumes:
+      - storage_data:/app/storage
 
   frontend:
     build: ./frontend
@@ -47,3 +60,4 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  storage_data:
