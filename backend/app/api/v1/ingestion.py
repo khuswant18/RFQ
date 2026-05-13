@@ -17,20 +17,22 @@ async def upload_rfq(file: UploadFile = File(...)):
     Returns rfq_id and starts the processing pipeline.
     """
     rfq_id = str(uuid.uuid4())
-    
-    # Save file to storage
+
+    # Save file to storage (sanitize filename to prevent path traversal)
     storage_dir = os.getenv("STORAGE_PATH", "storage")
     os.makedirs(storage_dir, exist_ok=True)
-    safe_name = os.path.basename(file.filename)
+    safe_name = os.path.basename(file.filename) if file.filename else "upload.bin"
+    if not safe_name or safe_name in (".", ".."):
+        safe_name = "upload.bin"
     file_path = os.path.join(storage_dir, f"{rfq_id}_{safe_name}")
     with open(file_path, "wb") as f:
         content = await file.read()
         f.write(content)
-    
+
     create_rfq(
         rfq_id=rfq_id,
         source_channel="api",
-        file_type=file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else None,
+        file_type=file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else None,
         file_path=file_path,
         sender_contact=None
     )
@@ -44,7 +46,7 @@ async def upload_rfq(file: UploadFile = File(...)):
             kwargs={"file_path": file_path, "source_channel": "api"},
             daemon=True
         ).start()
-    
+
     return {
         "rfq_id": rfq_id,
         "filename": file.filename,
@@ -67,7 +69,7 @@ async def ingest_text(text: str, sender_contact: Optional[str] = None):
         raw_text=text,
         sender_contact=sender_contact
     )
-    
+
     if hasattr(process_rfq_pipeline, "delay"):
         process_rfq_pipeline.delay(
             rfq_id,
@@ -82,7 +84,7 @@ async def ingest_text(text: str, sender_contact: Optional[str] = None):
             kwargs={"raw_text": text, "sender_contact": sender_contact, "source_channel": "api"},
             daemon=True
         ).start()
-    
+
     return {
         "rfq_id": rfq_id,
         "status": "received",

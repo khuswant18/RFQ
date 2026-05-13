@@ -8,7 +8,7 @@ try:
     CHROMA_AVAILABLE = True
 except ImportError:
     CHROMA_AVAILABLE = False
-    
+
 from app.models.rfq import NERInput, NEROutput, LineItem
 
 
@@ -17,15 +17,15 @@ class NERAgent:
     NER Agent: Extracts structured steel entities from raw text.
     Uses RAG (Retrieval-Augmented Generation) with ChromaDB for context.
     """
-    
+
     def __init__(self):
         self.groq = GroqClient()
         try:
             self.chroma = ChromaClient()
-        except ImportError:
+        except (ImportError, Exception):
             self.chroma = None
-            print("⚠️  ChromaDB not available. NER agent running without RAG.")
-    
+            print("Warning: ChromaDB not available. NER agent running without RAG.")
+
     SYSTEM_PROMPT = """You are an expert Indian Steel Metallurgist and procurement specialist.
 Your task is to extract structured entities from an RFQ document.
 
@@ -80,33 +80,41 @@ If a field cannot be determined, set it to null and confidence to 0.
         if not self.chroma:
             return "", ""
 
-        is_results = self.chroma.query(
-            collection="is_codes",
-            query_texts=[raw_text],
-            n_results=5
-        )
-        synonym_results = self.chroma.query(
-            collection="material_synonyms",
-            query_texts=[raw_text],
-            n_results=5
-        )
-        
-        is_context = "\n".join([doc for doc in is_results.get("documents", [[]])[0]])
-        synonyms = "\n".join([doc for doc in synonym_results.get("documents", [[]])[0]])
-        
+        try:
+            is_results = self.chroma.query(
+                collection="is_codes",
+                query_texts=[raw_text],
+                n_results=5
+            )
+            is_context = "\n".join([doc for doc in is_results.get("documents", [[]])[0]])
+        except Exception as e:
+            print(f"ChromaDB is_codes query failed: {e}")
+            is_context = ""
+
+        try:
+            synonym_results = self.chroma.query(
+                collection="material_synonyms",
+                query_texts=[raw_text],
+                n_results=5
+            )
+            synonyms = "\n".join([doc for doc in synonym_results.get("documents", [[]])[0]])
+        except Exception as e:
+            print(f"ChromaDB material_synonyms query failed: {e}")
+            synonyms = ""
+
         return is_context, synonyms
 
     def run(self, ner_input: NERInput) -> NEROutput:
         """Run NER extraction on the input text."""
         # Retrieve context from ChromaDB
         is_context, synonyms = self.retrieve_steel_context(ner_input.raw_text)
-        
+
         # Augment prompt with retrieved context
         system_prompt = self.SYSTEM_PROMPT.format(
             retrieved_is_code_context=is_context,
             retrieved_synonyms=synonyms
         )
-        
+
         # Call LLM
         result = self.groq.call(
             system_prompt=system_prompt,
@@ -114,7 +122,7 @@ If a field cannot be determined, set it to null and confidence to 0.
             model="llama3-70b-8192",
             temperature=0.1
         )
-        
+
         # Parse JSON output
         try:
             entities = json.loads(result)
@@ -126,7 +134,7 @@ If a field cannot be determined, set it to null and confidence to 0.
                 "price_inclusive_gst": False,
                 "overall_confidence": 0.0
             }
-        
+
         return NEROutput(
             rfq_id=ner_input.rfq_id,
             line_items=entities.get("line_items", []),

@@ -4,10 +4,11 @@ try:
     CELERY_AVAILABLE = True
 except ImportError:
     CELERY_AVAILABLE = False
-    class Celery:
+
+    class Celery:  # type: ignore[no-redef]
         def __init__(self, *args, **kwargs):
             self.conf = type('conf', (), {'update': lambda self, **kw: None})()
-    
+
     def celery_app_task(*args, **kwargs):
         def decorator(func):
             return func
@@ -69,7 +70,7 @@ def _run_pipeline(rfq_id: str, file_path: str = None, raw_text: str = None,
             file_type=file_type
         ))
         extracted_text = ocr_output.raw_text
-        results["ocr"] = ocr_output.dict()
+        results["ocr"] = ocr_output.model_dump()  # Pydantic v2
 
     if not extracted_text:
         update_rfq(rfq_id, status="failed", error="No text extracted from RFQ.")
@@ -85,13 +86,13 @@ def _run_pipeline(rfq_id: str, file_path: str = None, raw_text: str = None,
         rfq_id=rfq_id,
         raw_text=extracted_text
     ))
-    results["ner"] = ner_output.dict()
+    results["ner"] = ner_output.model_dump()  # Pydantic v2
     update_rfq(rfq_id, status="extracted")
 
     # Validation
     validator_agent = ValidatorAgent()
     validation_results = validator_agent.run(ner_output.line_items)
-    results["validation"] = [res.dict() for res in validation_results]
+    results["validation"] = [res.model_dump() for res in validation_results]
 
     valid_items = [res.item for res in validation_results if res.status == "valid"]
     if not valid_items:
@@ -162,7 +163,7 @@ def _run_pipeline(rfq_id: str, file_path: str = None, raw_text: str = None,
     gst_pincode = valid_items[0].destination_pincode or default_pincode
     gst_material = valid_items[0].material_type or ""
     gst_result = gst_agent.run(total_subtotal, gst_pincode, gst_material)
-    results["gst"] = gst_result.dict()
+    results["gst"] = gst_result.model_dump()  # Pydantic v2
 
     # Quote
     quote_agent = QuoteAgent()
@@ -195,7 +196,7 @@ def _run_pipeline(rfq_id: str, file_path: str = None, raw_text: str = None,
             recipient=sender_contact,
             summary=summary
         ))
-        results["communication"] = comms_result.dict()
+        results["communication"] = comms_result.model_dump()  # Pydantic v2
 
     update_rfq(rfq_id, result=results)
     return {

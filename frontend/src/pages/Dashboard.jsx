@@ -1,45 +1,59 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import './Dashboard.css'
+import React, { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
+import "./Dashboard.css"
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"
 
 function Dashboard() {
   const [rfqs, setRfqs] = useState([])
   const [loading, setLoading] = useState(true)
-  
-  // Simulated data for demo purposes
+
   useEffect(() => {
-    const mockData = [
-      { id: 'RFQ-2024-001', status: 'quoted', material: '12mm TMT Bar Fe500', quantity: '10 tons', amount: '₹580,000', date: '2024-05-10', client: 'Rajesh Steel' },
-      { id: 'RFQ-2024-002', status: 'processing', material: '8mm TMT Bar Fe500', quantity: '5 tons', amount: '--', date: '2024-05-10', client: 'Patel Traders' },
-      { id: 'RFQ-2024-003', status: 'quoted', material: '16mm TMT Bar Fe500D', quantity: '15 tons', amount: '₹870,000', date: '2024-05-09', client: 'Gujrat Steels' },
-      { id: 'RFQ-2024-004', status: 'failed', material: '20mm TMT Bar Fe550', quantity: '8 tons', amount: '--', date: '2024-05-09', client: 'Sagar Enterprise' }
-    ]
-    setRfqs(mockData)
-    setLoading(false)
+    const fetchRfqs = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/rfq/feed`)
+        if (!res.ok) throw new Error("Failed to fetch RFQs")
+        const data = await res.json()
+        setRfqs(data.rfqs || [])
+      } catch (err) {
+        console.error("Dashboard fetch error:", err)
+        setRfqs([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchRfqs()
+    const interval = setInterval(fetchRfqs, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   const getStatusClass = (status) => {
     switch (status) {
-      case 'quoted': return 'status-quoted'
-      case 'processing': return 'status-processing'
-      case 'failed': return 'status-failed'
-      default: return ''
+      case "quoted": return "status-quoted"
+      case "processing": return "status-processing"
+      case "failed": return "status-failed"
+      default: return ""
     }
   }
 
+  const total = rfqs.length
+  const quoted = rfqs.filter(r => r.status === "quoted").length
+  const processing = rfqs.filter(r => r.status === "processing").length
+  const failed = rfqs.filter(r => r.status === "failed").length
+  const conversionRate = total > 0 ? Math.round((quoted / total) * 100) + "%" : "0%"
+
   const stats = {
-    totalRFQs: 24,
-    quoted: 18,
-    processing: 4,
-    failed: 2,
-    conversionRate: '75%'
+    totalRFQs: total,
+    quoted: quoted,
+    processing: processing,
+    failed: failed,
+    conversionRate: conversionRate
   }
 
   return (
     <div className="dashboard-container">
       <h1 className="dashboard-title">Dashboard</h1>
-      
-      {/* Stats Cards */}
+
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value">{stats.totalRFQs}</div>
@@ -63,35 +77,44 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Recent RFQs */}
       <div className="rfq-table-container">
         <h2 className="table-title">Recent RFQs</h2>
-        <table className="rfq-table">
-          <thead>
-            <tr>
-              <th>RFQ ID</th>
-              <th>Material</th>
-              <th>Quantity</th>
-              <th>Client</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rfqs.map(rfq => (
-              <tr key={rfq.id}>
-                <td><Link to={`/rfq/${rfq.id}`} className="rfq-link">{rfq.id}</Link></td>
-                <td>{rfq.material}</td>
-                <td>{rfq.quantity}</td>
-                <td>{rfq.client}</td>
-                <td className="amount">{rfq.amount}</td>
-                <td><span className={`status-badge ${getStatusClass(rfq.status)}`}>{rfq.status}</span></td>
-                <td>{rfq.date}</td>
+        {loading ? (
+          <p style={{ padding: 20 }}>Loading...</p>
+        ) : rfqs.length === 0 ? (
+          <p style={{ padding: 20 }}>No RFQs yet. Upload one to get started.</p>
+        ) : (
+          <table className="rfq-table">
+            <thead>
+              <tr>
+                <th>RFQ ID</th>
+                <th>Status</th>
+                <th>Channel</th>
+                <th>File Type</th>
+                <th>Updated</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rfqs.map(rfq => (
+                <tr key={rfq.rfq_id}>
+                  <td>
+                    <Link to={`/rfq/${rfq.rfq_id}`} className="rfq-link">
+                      {rfq.rfq_id?.slice(0, 12)}...
+                    </Link>
+                  </td>
+                  <td>
+                    <span className={`status-badge ${getStatusClass(rfq.status)}`}>
+                      {rfq.status}
+                    </span>
+                  </td>
+                  <td>{rfq.source_channel || "api"}</td>
+                  <td>{rfq.file_type || "text"}</td>
+                  <td>{rfq.updated_at ? new Date(rfq.updated_at).toLocaleString() : "--"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )

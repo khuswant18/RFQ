@@ -109,12 +109,12 @@
 }
 
 .btn-danger {
-  background: #e2e8f0;
-  color: #e2e8f0;
+  background: #e53e3e;
+  color: #ffffff;
 }
 
 .btn-danger:hover {
-  background: #cbd5e0;
+  background: #c53030;
 }
 
 @media (max-width: 768px) {

@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
-import './Upload.css'
+import React, { useState } from "react"
+import "./Upload.css"
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"
 
 function Upload() {
   const [file, setFile] = useState(null)
@@ -16,28 +18,43 @@ function Upload() {
     if (!file) return
 
     setUploading(true)
-    
-    // Simulate upload
-    setTimeout(() => {
-      setUploading(false)
+    setUploadStatus(null)
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const res = await fetch(`${API_BASE}/ingest/upload`, {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || "Upload failed")
       setUploadStatus({
         success: true,
-        message: 'RFQ uploaded successfully!',
-        rfqId: 'RFQ-2024-005',
-        redirectUrl: '/rfq/RFQ-2024-005'
+        message: data.message || "RFQ uploaded successfully!",
+        rfqId: data.rfq_id,
+        redirectUrl: `/rfq/${data.rfq_id}`,
       })
-    }, 2000)
+    } catch (err) {
+      setUploadStatus({
+        success: false,
+        message: err.message || "Upload failed",
+      })
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
     <div className="upload-container">
       <h1 className="upload-title">Upload RFQ</h1>
-      
+
       <div className="upload-card">
         <form onSubmit={handleUpload} className="upload-form">
           <div className="file-input-wrapper">
-            <input 
-              type="file" 
+            <input
+              type="file"
               id="file-upload"
               onChange={handleFileChange}
               className="file-input"
@@ -45,24 +62,24 @@ function Upload() {
             <label htmlFor="file-upload" className="file-label">
               <span className="file-icon">📄</span>
               <span className="file-text">
-                {file ? file.name : 'Select or drag & drop an RFQ file'}
+                {file ? file.name : "Select or drag & drop an RFQ file"}
               </span>
             </label>
           </div>
-          
+
           <button
             type="submit"
             disabled={!file || uploading}
-            className={`upload-button ${uploading ? 'uploading' : ''}`}
+            className={`upload-button ${uploading ? "uploading" : ""}`}
           >
-            {uploading ? 'Uploading...' : 'Upload RFQ'}
+            {uploading ? "Uploading..." : "Upload RFQ"}
           </button>
         </form>
 
         {uploadStatus && (
           <div className="upload-status">
-            <div className={`status-message ${uploadStatus.success ? 'success' : 'error'}`}>
-              <span className="status-icon">{uploadStatus.success ? '✅' : '❌'}</span>
+            <div className={`status-message ${uploadStatus.success ? "success" : "error"}`}>
+              <span className="status-icon">{uploadStatus.success ? "✅" : "❌"}</span>
               <span>{uploadStatus.message}</span>
             </div>
             {uploadStatus.rfqId && (

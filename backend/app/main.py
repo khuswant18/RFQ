@@ -1,13 +1,11 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+"""Entry point for SRIP API server."""
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 
 from app.api.v1 import ingestion, rfq, quotes, webhook
 from app.core.rag.seed_knowledge import seed_chroma
-from app.models.rfq import RFQCreate, RFQStatus
-from app.agents.orchestrator import OrchestratorAgent
-from app.tasks.pipeline_tasks import process_rfq_pipeline
 
 
 @asynccontextmanager
@@ -48,10 +46,10 @@ async def health_check():
 
 
 @app.post("/api/v1/process")
-async def process_rfq(file: UploadFile = File(...)):
-    """Direct file upload and process endpoint."""
+async def process_rfq_legacy(file: UploadFile = File(...)):
+    """Legacy direct file upload and process endpoint."""
     content = await file.read()
-    # Process logic here
+    # Process logic here (kept for backward compatibility)
     return {"filename": file.filename, "status": "received"}
 
 

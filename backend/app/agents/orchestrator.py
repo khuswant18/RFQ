@@ -9,17 +9,17 @@ from app.models.rfq import OrchestratorInput, ExecutionPlan, ExecutionStep
 
 class OrchestratorAgent:
     """
-    The Orchestrator Agent is the master planner.
-    It reads incoming RFQ metadata, produces an execution plan,
+    Orchestrator Agent: master planner.
+    Reads incoming RFQ metadata, produces an execution plan,
     and dispatches sub-agents in the correct sequence.
     """
-    
+
     def __init__(self):
         try:
             self.groq = GroqClient()
         except ValueError:
             self.groq = None  # Allow use without API keys (demo mode)
-    
+
     SYSTEM_PROMPT = """You are the Orchestrator Agent for an Indian steel RFQ processing pipeline.
 Your job is to analyse an incoming RFQ and produce a JSON execution plan.
 
@@ -40,7 +40,7 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
         """Create an execution plan based on the RFQ input."""
         steps = []
         step_num = 1
-        
+
         # Determine if OCR is needed
         if rfq_input.file_type in ("jpg", "png", "pdf"):
             steps.append(ExecutionStep(
@@ -51,7 +51,7 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
                 fallback="request_clearer_image"
             ))
             step_num += 1
-        
+
         # NER Agent
         ner_step = step_num
         ner_input = "{{step1.output.raw_text}}" if step_num > 1 else rfq_input.raw_text
@@ -63,7 +63,7 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
             fallback="set_status_incomplete"
         ))
         step_num += 1
-        
+
         # Validator Agent
         validator_step = step_num
         steps.append(ExecutionStep(
@@ -74,7 +74,7 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
             fallback="flag_for_review"
         ))
         step_num += 1
-        
+
         # Pricing Agent
         pricing_step = step_num
         steps.append(ExecutionStep(
@@ -85,7 +85,7 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
             fallback="use_cached_rates"
         ))
         step_num += 1
-        
+
         # GST Agent
         gst_step = step_num
         steps.append(ExecutionStep(
@@ -100,7 +100,7 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
             fallback="use_igst_conservative"
         ))
         step_num += 1
-        
+
         # Quote Agent
         quote_step = step_num
         steps.append(ExecutionStep(
@@ -117,7 +117,7 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
             fallback="generate_partial_quote"
         ))
         step_num += 1
-        
+
         # Communication Agent
         steps.append(ExecutionStep(
             step=step_num,
@@ -130,18 +130,18 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
             depends_on=[step_num - 1],
             fallback="store_for_manual_send"
         ))
-        
+
         return ExecutionPlan(
             rfq_id=rfq_input.rfq_id,
             steps=steps,
             estimated_complexity="standard"
         )
-    
+
     def run(self, rfq_input: OrchestratorInput) -> dict:
         """Run the orchestrator and return the execution plan."""
         plan = self.create_plan(rfq_input)
         return {
             "status": "success",
             "rfq_id": rfq_input.rfq_id,
-            "plan": plan.dict()
+            "plan": plan.model_dump()  # Pydantic v2
         }
