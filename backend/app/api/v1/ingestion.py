@@ -29,13 +29,20 @@ async def upload_rfq(file: UploadFile = File(...)):
         content = await file.read()
         f.write(content)
 
-    create_rfq(
-        rfq_id=rfq_id,
-        source_channel="api",
-        file_type=file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else None,
-        file_path=file_path,
-        sender_contact=None
-    )
+    # Try to create RFQ record in DB; if DB not available, proceed without failing the request
+    db_ok = True
+    try:
+        create_rfq(
+            rfq_id=rfq_id,
+            source_channel="api",
+            file_type=file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else None,
+            file_path=file_path,
+            sender_contact=None,
+        )
+    except Exception as exc:
+        # Log and continue — background pipeline will handle failures and update DB when available
+        print(f"⚠️  Failed to create RFQ record: {exc}")
+        db_ok = False
 
     if hasattr(process_rfq_pipeline, "delay"):
         process_rfq_pipeline.delay(rfq_id, file_path=file_path, source_channel="api")
@@ -47,12 +54,15 @@ async def upload_rfq(file: UploadFile = File(...)):
             daemon=True
         ).start()
 
-    return {
+    # Return accepted even if DB was unavailable — caller can poll or check logs
+    resp = {
         "rfq_id": rfq_id,
         "filename": file.filename,
         "status": "received",
+        "db_record_created": db_ok,
         "message": "RFQ uploaded successfully. Processing will begin shortly."
     }
+    return resp
 
 
 @router.post("/ingest/text")
