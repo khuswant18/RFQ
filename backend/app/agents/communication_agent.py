@@ -7,74 +7,75 @@ from app.models.rfq import CommunicationResult
 
 
 class CommunicationAgent:
-    """
-    Communication Agent: Sends PDF quotes to WhatsApp/Email,
+    """Communication Agent: Sends PDF quotes to WhatsApp/Email,
     creates dashboard tasks, and updates RFQ status.
-    """
-    
+    All methods are synchronous for Celery compatibility."""
+
     def __init__(self):
         self.groq = GroqClient()
-        # Import twilio only if configured
         try:
-            from twilio.rest import Client
-            self.twilio_client = Client(
-                os.getenv("TWILIO_ACCOUNT_SID"),
-                os.getenv("TWILIO_AUTH_TOKEN")
-            )
-        except ImportError:
+            from twilio.rest import Client as TwilioClient
+            sid = os.getenv("TWILIO_ACCOUNT_SID", "")
+            token = os.getenv("TWILIO_AUTH_TOKEN", "")
+            if sid and token:
+                self.twilio_client = TwilioClient(sid, token)
+            else:
+                self.twilio_client = None
+        except (ImportError, Exception):
             self.twilio_client = None
-    
+
     def send_whatsapp(self, to: str, text: str, media_url: Optional[str] = None) -> bool:
-        """Send a WhatsApp message with optional media."""
         if not self.twilio_client:
-            print("Twilio not configured. Mock sending WhatsApp message.")
+            print(f"Twilio not configured. Mock sending WhatsApp to {to}.")
             return True
-        
         try:
-            message = self.twilio_client.messages.create(
-                from_=os.getenv("TWILIO_WHATSAPP_NUMBER"),
-                body=text,
-                to=to,
-                media_url=[media_url] if media_url else None
-            )
+            msg_kwargs = {
+                "from_": os.getenv("TWILIO_WHATSAPP_NUMBER"),
+                "body": text,
+                "to": to,
+            }
+            if media_url:
+                msg_kwargs["media_url"] = [media_url]
+            self.twilio_client.messages.create(**msg_kwargs)
             return True
         except Exception as e:
-            print(f"Failed to send WhatsApp message: {e}")
+            print(f"Failed to send WhatsApp: {e}")
             return False
-    
-    def send_email(self, to: str, subject: str, body: str, 
+
+    def send_email(self, to: str, subject: str, body: str,
                    attachment: Optional[str] = None) -> bool:
-        """Send an email with optional attachment."""
-        # Implement email sending logic here (e.g., using smtplib)
         print(f"Mock sending email to {to}: {subject}")
         return True
-    
+
     def create_task(self, title: str, rfq_id: str, priority: str = "normal") -> bool:
-        """Create an internal task in the task store."""
-        # Implement task creation logic here
-        print(f"Mock creating task: {title} (RFQ: {rfq_id})")
+        print(f"Mock creating task: {title} (RFQ: {rfq_id}, priority: {priority})")
         return True
-    
-    async def run(self, rfq_id: str, pdf_path: str, channel: str,
-                  recipient: str, summary: str) -> CommunicationResult:
-        """Run communication dispatch."""
-        
-        if channel == "whatsapp":
-            success = self.send_whatsapp(recipient, summary, pdf_path)
-        elif channel == "email":
+
+    def run(self, rfq_id: str, pdf_path: str, channel: str,
+            recipient: str, summary: str) -> CommunicationResult:
+        """Run communication dispatch (synchronous)."""
+        # Build public URL for PDF (Twilio needs a publicly accessible URL)
+        base_url = os.getenv("BACKEND_PUBLIC_URL", "http://localhost:8000")
+        public_pdf_url = f"{base_url}/api/v1/rfq/{rfq_id}/quote"
+
+        success = False
+        if channel == "whatsapp" and recipient:
+            success = self.send_whatsapp(recipient, summary, public_pdf_url)
+        elif channel == "email" and recipient:
             success = self.send_email(recipient, f"Quote: {rfq_id[:8]}", summary, pdf_path)
         else:
-            success = False
-        
+            # Dashboard-only — no external send needed
+            success = True
+
         # Create internal task
         self.create_task(
-            title=f"Verify inventory for RFQ {rfq_id}",
+            title=f"Verify inventory for RFQ {rfq_id[:8]}",
             rfq_id=rfq_id,
             priority="high"
         )
-        
+
         return CommunicationResult(
             sent=success,
-            channel=channel,
+            channel=channel or "dashboard",
             error=None if success else "Failed to send message"
         )

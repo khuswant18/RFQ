@@ -1,41 +1,67 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+"""Entry point for SRIP API server."""
+import os
+import time
+import uuid
+from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 
-from app.api.v1 import ingestion, rfq, quotes, webhook
+from app.api.v1 import ingestion, rfq, quotes, webhook, auth
 from app.core.rag.seed_knowledge import seed_chroma
-from app.models.rfq import RFQCreate, RFQStatus
-from app.agents.orchestrator import OrchestratorAgent
-from app.tasks.pipeline_tasks import process_rfq_pipeline
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
-    # Startup: Seed knowledge base
+    print("🚀 Starting SRIP API Server...")
     seed_chroma()
+    # Initialize database if configured
+    try:
+        from app.core.database import init_db, is_db_available
+        if is_db_available():
+            init_db()
+    except ImportError:
+        pass
+    print("✅ SRIP API Server ready.")
     yield
-    # Shutdown: cleanup if needed
+    print("👋 SRIP API Server shutting down.")
 
 
 app = FastAPI(
     title="Smart RFQ Intelligence Pipeline",
     description="Agentic RAG system for Indian steel MSME RFQ processing",
     version="2.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-# CORS
+# CORS — allow frontend origins
+allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    """Add a unique request ID and timing to every response."""
+    request_id = str(uuid.uuid4())[:8]
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = round((time.time() - start_time) * 1000, 2)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Process-Time-Ms"] = str(process_time)
+    return response
+
+
 # Include routers
+app.include_router(auth.router, prefix="/api/v1")
 app.include_router(ingestion.router, prefix="/api/v1")
 app.include_router(rfq.router, prefix="/api/v1")
 app.include_router(quotes.router, prefix="/api/v1")
@@ -44,16 +70,31 @@ app.include_router(webhook.router, prefix="/api/v1")
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "version": "2.0.0"}
+    """Health check endpoint for load balancers and monitoring."""
+    return {
+        "status": "healthy",
+        "version": "2.0.0",
+        "service": "srip-api",
+        "mock_mode": os.getenv("MOCK_GROQ", "true"),
+    }
 
 
-@app.post("/api/v1/process")
-async def process_rfq(file: UploadFile = File(...)):
-    """Direct file upload and process endpoint."""
-    content = await file.read()
-    # Process logic here
-    return {"filename": file.filename, "status": "received"}
+@app.get("/")
+async def root():
+    """Root endpoint — redirect to docs."""
+    return {
+        "service": "Smart RFQ Intelligence Pipeline (SRIP)",
+        "version": "2.0.0",
+        "docs": "/docs",
+        "health": "/health",
+    }
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        reload_dirs=["app"],
+    )

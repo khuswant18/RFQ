@@ -9,55 +9,85 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U srip"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-
-  minio:
-    image: minio/minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
     ports:
       - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://srip:srip@db:5432/srip
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_PATH=/app/storage
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - storage_data:/app/storage
+      - chroma_data:/app/data/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    build: ./backend
+    command: celery -A app.tasks.pipeline_tasks worker --loglevel=info --concurrency=4
+    env_file:
+      - ./backend/.env
     environment:
       - DATABASE_URL=postgresql://srip:srip@db:5432/srip
       - REDIS_URL=redis://redis:6379/0
       - STORAGE_PATH=/app/storage
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - storage_data:/app/storage
+      - chroma_data:/app/data/chroma
+    restart: on-failure
 
-  worker:
+  flower:
     build: ./backend
-    command: celery -A app.tasks.pipeline_tasks worker --loglevel=info
+    command: celery -A app.tasks.pipeline_tasks flower --port=5555
+    ports:
+      - "5555:5555"
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - STORAGE_PATH=/app/storage
     depends_on:
-      - redis
-    volumes:
-      - storage_data:/app/storage
+      redis:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
     ports:
       - "3000:80"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
-  minio_data:
   storage_data:
+  chroma_data:

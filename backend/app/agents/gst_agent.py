@@ -9,9 +9,9 @@ class GSTAgent:
     GST Agent: Determines tax jurisdiction, assigns HSN code,
     calculates IGST/CGST/SGST split.
     """
-    
+
     GUJARAT_PINCODE_PREFIXES = ["36", "37", "38", "39"]
-    
+
     HSN_MAP = {
         "TMT_Bar": "7213",
         "Structural_Plate": "7208",
@@ -21,20 +21,20 @@ class GSTAgent:
         "Square_Bar": "7214",
         "Pipe": "7306"
     }
-    
+
     GST_RATE = 0.18  # 18%
-    
+
     def calculate_gst(self, subtotal: float, delivery_pincode: str, material_type: str) -> GSTResult:
         """Calculate GST for a single item."""
         # Determine jurisdiction
         is_gujarat = str(delivery_pincode)[:2] in self.GUJARAT_PINCODE_PREFIXES
-        
+
         # Assign HSN code
         hsn_code = self.HSN_MAP.get(material_type, "7214")
-        
+
         # Calculate GST amount
         gst_amount = subtotal * self.GST_RATE
-        
+
         if is_gujarat:
             # CGST + SGST (intra-state)
             return GSTResult(
@@ -57,7 +57,7 @@ class GSTAgent:
                 hsn_code=hsn_code,
                 gst_rate_pct=18.0
             )
-    
+
     def run(self, subtotal: float, pincode: str, material_type: str) -> GSTResult:
         """Run GST calculation."""
         return self.calculate_gst(subtotal, pincode, material_type)

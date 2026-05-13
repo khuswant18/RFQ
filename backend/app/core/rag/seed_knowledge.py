@@ -1,10 +1,16 @@
 """Seed steel domain knowledge into ChromaDB."""
 import json
 import os
+import pathlib
 
 
 class KnowledgeSeeder:
     """Seeds ChromaDB with steel domain knowledge."""
+
+    def __init__(self):
+        # Resolve knowledge directory relative to this file
+        self.base_dir = pathlib.Path(__file__).resolve().parent.parent.parent
+        self.knowledge_dir = self.base_dir / "knowledge"
 
     def load_json(self, file_path: str):
         """Load JSON data from a file."""
@@ -18,7 +24,7 @@ class KnowledgeSeeder:
     def seed_is_codes(self, chroma=None):
         """Seed IS codes into ChromaDB."""
         print("Seeding IS codes...")
-        data = self.load_json("app/knowledge/is_codes.json")
+        data = self.load_json(self.knowledge_dir / "is_codes.json")
         if not data:
             return
 
@@ -30,7 +36,7 @@ class KnowledgeSeeder:
             doc = f"{item['is_code']}: {item['title']}. Grades: {', '.join(item['grades'])}. {item['description']}"
             docs.append(doc)
             ids.append(item["id"])
-            metadatas.append({"is_code": item["is_code"], "grades": item["grades"]})
+            metadatas.append({"is_code": item["is_code"], "grades": ", ".join(item["grades"])})
 
         if chroma:
             chroma.add_documents("is_codes", docs, ids, metadatas)
@@ -39,7 +45,7 @@ class KnowledgeSeeder:
     def seed_material_synonyms(self, chroma=None):
         """Seed material synonyms into ChromaDB."""
         print("Seeding material synonyms...")
-        data = self.load_json("app/knowledge/material_synonyms.json")
+        data = self.load_json(self.knowledge_dir / "material_synonyms.json")
         if not data:
             return
 
@@ -60,7 +66,7 @@ class KnowledgeSeeder:
     def seed_hsn_gst_rules(self, chroma=None):
         """Seed HSN/GST rules into ChromaDB."""
         print("Seeding HSN/GST rules...")
-        data = self.load_json("app/knowledge/hsn_gst_rules.json")
+        data = self.load_json(self.knowledge_dir / "hsn_gst_rules.json")
         if not data:
             return
 
@@ -81,7 +87,7 @@ class KnowledgeSeeder:
     def seed_weight_formulas(self, chroma=None):
         """Seed weight formulas into ChromaDB."""
         print("Seeding weight formulas...")
-        data = self.load_json("app/knowledge/weight_formulas.json")
+        data = self.load_json(self.knowledge_dir / "weight_formulas.json")
         if not data:
             return
 
@@ -106,8 +112,8 @@ class KnowledgeSeeder:
         try:
             from app.core.rag.chroma_client import ChromaClient
             chroma = ChromaClient()
-        except ImportError:
-            print("Warning: ChromaDB not available. Skipping seeding.")
+        except (ImportError, Exception) as e:
+            print(f"Warning: ChromaDB not available ({e}). Skipping seeding.")
             chroma = None
 
         self.seed_is_codes(chroma)
