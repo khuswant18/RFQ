@@ -77,6 +77,9 @@ If a field cannot be determined, set it to null and confidence to 0.
 
     def retrieve_steel_context(self, raw_text: str) -> tuple:
         """Retrieve relevant IS code context and synonyms from ChromaDB."""
+        if not self.chroma:
+            return "", ""
+
         is_results = self.chroma.query(
             collection="is_codes",
             query_texts=[raw_text],

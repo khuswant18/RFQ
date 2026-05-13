@@ -53,9 +53,10 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
             step_num += 1
         
         # NER Agent
+        ner_step = step_num
         ner_input = "{{step1.output.raw_text}}" if step_num > 1 else rfq_input.raw_text
         steps.append(ExecutionStep(
-            step=step_num,
+            step=ner_step,
             agent="NERAgent",
             input_template={"raw_text": ner_input},
             depends_on=[step_num - 1] if step_num > 1 else [],
@@ -64,32 +65,36 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
         step_num += 1
         
         # Validator Agent
+        validator_step = step_num
         steps.append(ExecutionStep(
-            step=step_num,
+            step=validator_step,
             agent="ValidatorAgent",
-            input_template={"entities": "{{step2.output.entities}}"},
+            input_template={"line_items": f"{{{{step{ner_step}.output.line_items}}}}"},
             depends_on=[step_num - 1],
             fallback="flag_for_review"
         ))
         step_num += 1
         
         # Pricing Agent
+        pricing_step = step_num
         steps.append(ExecutionStep(
-            step=step_num,
+            step=pricing_step,
             agent="PricingAgent",
-            input_template={"validated_items": "{{step3.output}}"},
+            input_template={"validated_items": f"{{{{step{validator_step}.output}}}}"},
             depends_on=[step_num - 1],
             fallback="use_cached_rates"
         ))
         step_num += 1
         
         # GST Agent
+        gst_step = step_num
         steps.append(ExecutionStep(
-            step=step_num,
+            step=gst_step,
             agent="GSTAgent",
             input_template={
-                "cost_data": "{{step4.output}}",
-                "pincode": "{{step2.output.destination_pincode}}"
+                "subtotal": f"{{{{step{pricing_step}.output.total_subtotal}}}}",
+                "pincode": f"{{{{step{ner_step}.output.line_items.0.destination_pincode}}}}",
+                "material_type": f"{{{{step{ner_step}.output.line_items.0.material_type}}}}"
             },
             depends_on=[step_num - 1],
             fallback="use_igst_conservative"
@@ -97,10 +102,17 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
         step_num += 1
         
         # Quote Agent
+        quote_step = step_num
         steps.append(ExecutionStep(
-            step=step_num,
+            step=quote_step,
             agent="QuoteAgent",
-            input_template={"full_data": "{{steps1-5.merged}}"},
+            input_template={
+                "line_items": f"{{{{step{pricing_step}.output.item_costs}}}}",
+                "total": f"{{{{step{pricing_step}.output.total_subtotal}}}}",
+                "gst": f"{{{{step{gst_step}.output}}}}",
+                "buyer_contact": rfq_input.sender_contact,
+                "buyer_location": f"{{{{step{ner_step}.output.line_items.0.destination_raw}}}}"
+            },
             depends_on=[step_num - 1],
             fallback="generate_partial_quote"
         ))
@@ -111,8 +123,9 @@ Return ONLY valid JSON matching the ExecutionPlan schema. No explanation.
             step=step_num,
             agent="CommunicationAgent",
             input_template={
-                "pdf_path": "{{step6.output.pdf_path}}",
-                "channel": rfq_input.source_channel
+                "pdf_path": f"{{{{step{quote_step}.output.pdf_path}}}}",
+                "channel": rfq_input.source_channel,
+                "recipient": rfq_input.sender_contact
             },
             depends_on=[step_num - 1],
             fallback="store_for_manual_send"

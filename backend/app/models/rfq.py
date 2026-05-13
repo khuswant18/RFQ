@@ -188,6 +188,7 @@ class QuoteContext(BaseModel):
     subtotal: float
     logistics_total: float
     margin_amount: float
+    margin_percent: float
     gst_type: str
     gst_amount: float
     grand_total: float

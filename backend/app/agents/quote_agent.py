@@ -27,8 +27,7 @@ Quote data: {quote_summary}
 
     def generate_quote_number(self, rfq_id: str) -> str:
         """Generate a quote number."""
-        date_str = datetime.now().strftime("%Y%m%d")
-        return f"QT-{rfq_id[:8].upper()}-{date_str}"
+        return f"QT-{rfq_id}"
     
     def generate_pdf(self, context: QuoteContext) -> str:
         """Generate a PDF quote for an RFQ."""
@@ -62,13 +61,17 @@ Quote data: {quote_summary}
         
         return result
     
-    async def run(self, rfq_id: str, line_items: list, total: float, 
-                  buyer_contact: str, buyer_location: str) -> str:
+    async def run(self, rfq_id: str, line_items: list, total: float,
+                  buyer_contact: str, buyer_location: str,
+                  logistics_total: float = 0.0, margin_amount: float = 0.0,
+                  margin_percent: float = 0.0, gst_type: str = "CGST+SGST",
+                  gst_amount: float = None) -> str:
         """Run quote generation."""
         # Generate quote number
         quote_number = self.generate_quote_number(rfq_id)
         
         # Create context
+        effective_gst_amount = gst_amount if gst_amount is not None else (total * 0.18)
         context = QuoteContext(
             company_name=os.getenv("COMPANY_NAME", "Demo Steel Works"),
             company_gstin=os.getenv("COMPANY_GSTIN", "24XXXXX1234Z5"),
@@ -79,11 +82,12 @@ Quote data: {quote_summary}
             buyer_location=buyer_location,
             line_items=line_items,
             subtotal=total,
-            logistics_total=0,  # Would be calculated from item costs
-            margin_amount=0,
-            gst_type="CGST+SGST",
-            gst_amount=total * 0.18,
-            grand_total=total * 1.18,
+            logistics_total=logistics_total,
+            margin_amount=margin_amount,
+            margin_percent=margin_percent,
+            gst_type=gst_type,
+            gst_amount=effective_gst_amount,
+            grand_total=total + effective_gst_amount,
             is_codes_referenced=["IS 1786:2008", "IS 2062:2011"],
             notes="Price valid for 24 hours. GST extra as applicable.",
             bank_details="Bank: SBI, Acc: 1234567890, IFSC: SBIN0001234"
