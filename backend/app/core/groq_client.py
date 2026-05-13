@@ -5,6 +5,9 @@ import logging
 import os
 import time
 from typing import List, Optional, Dict, Any
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class GroqKeyRotator:
@@ -65,7 +68,7 @@ class GroqClient:
         )
 
     def call(self, system_prompt: str, user_prompt: str,
-             model: str = "llama3-70b-8192", temperature: float = 0.7,
+             model: str = "llama-3.3-70b-versatile", temperature: float = 0.7,
              max_tokens: int = 4096) -> str:
         """Make a synchronous call to Groq API."""
         # Check mock mode FIRST — before touching key_rotator
@@ -114,13 +117,13 @@ class GroqClient:
         raise RuntimeError(f"Groq API call failed after retries: {last_error}")
 
     def call_sync(self, system_prompt: str, user_prompt: str,
-                  model: str = "llama3-70b-8192", temperature: float = 0.7,
+                  model: str = "llama-3.3-70b-versatile", temperature: float = 0.7,
                   max_tokens: int = 4096) -> str:
         """Alias for call() — explicitly synchronous."""
         return self.call(system_prompt, user_prompt, model, temperature, max_tokens)
 
     async def call_async(self, system_prompt: str, user_prompt: str,
-                          model: str = "llama3-70b-8192", temperature: float = 0.7,
+                          model: str = "llama-3.3-70b-versatile", temperature: float = 0.7,
                           max_tokens: int = 4096) -> str:
         """Make an async call to Groq API."""
         # Check mock mode FIRST
@@ -170,7 +173,7 @@ class GroqClient:
         raise RuntimeError(f"Groq API call failed after retries: {last_error}")
 
     def call_vision(self, system_prompt: str, image_data: str,
-                    model: str = "llava-v1.5-7b-4096-preview") -> Dict[str, Any]:
+                    model: str = "llama-3.2-11b-vision-preview") -> Dict[str, Any]:
         """Make a vision call to Groq API for image understanding."""
         # Check mock mode FIRST
         if self._use_mock():
