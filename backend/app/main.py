@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     try:
         from app.core.database import init_db, is_db_available
         if is_db_available():
-            init_db()
+            yield
     except ImportError:
         pass
     print("✅ SRIP API Server ready.")
