@@ -6,7 +6,7 @@ from typing import Optional
 try:
     from sqlalchemy import (
         Column, String, Integer, Float, Boolean, Text, DateTime,
-        ForeignKey, JSON, Numeric
+        ForeignKey, JSON, Numeric, Index
     )
     from sqlalchemy.orm import relationship
     from app.core.database import Base
@@ -36,11 +36,15 @@ if MODELS_AVAILABLE:
         sender_contact = Column(String(50))
         raw_file_url = Column(Text)
         raw_text = Column(Text)
-        received_at = Column(DateTime, default=_now)
-        status = Column(String(30), default="received")
+        received_at = Column(DateTime, default=_now, index=True)
+        status = Column(String(30), default="received", index=True)
         updated_at = Column(DateTime, default=_now, onupdate=_now)
         error = Column(Text)
         result_json = Column(JSON)
+
+        __table_args__ = (
+            Index("ix_rfqs_status_received_at", "status", "received_at"),
+        )
 
         line_items = relationship("RFQLineItemRecord", back_populates="rfq")
         costs = relationship("RFQCostRecord", back_populates="rfq")

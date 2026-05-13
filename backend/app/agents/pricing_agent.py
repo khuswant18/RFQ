@@ -2,7 +2,8 @@
 import os
 import json
 import time
-from typing import Optional, List
+import logging
+from typing import Optional, List, Dict, Tuple
 
 from app.core.groq_client import GroqClient
 from app.core.serper_client import SerperClient
@@ -16,6 +17,8 @@ from app.models.rfq import (
     ValidatedLineItem, WeightResult,
     PricingResult, PriceResult, CostBreakdown
 )
+
+logger = logging.getLogger(__name__)
 
 
 class PricingAgent:
@@ -32,8 +35,12 @@ class PricingAgent:
             self.chroma = ChromaClient()
         except (ImportError, Exception):
             self.chroma = None
-            print("Warning: ChromaDB not available. Pricing agent running in standalone mode.")
-        self.redis = None  # Will be initialized with actual Redis client
+            logger.warning("ChromaDB not available — Pricing agent running standalone.")
+        self.redis = None  # Will be wired when Redis is available
+
+        # In-process MCX price cache: {grade: (price_per_ton, fetched_at_epoch)}
+        self._price_cache: Dict[str, Tuple[float, float]] = {}
+        self._cache_ttl: int = int(os.getenv("MCX_CACHE_TTL_SECONDS", "900"))  # 15 min
 
         # Fallback base prices (₹/MT) when live pricing unavailable
         self.BASE_FALLBACK_PRICES = {
@@ -48,21 +55,35 @@ class PricingAgent:
         }
 
     def fetch_mcx_price(self, grade: str) -> PriceResult:
-        """Fetch live MCX price for a given grade (synchronous)."""
-        cache_key = f"mcx:{grade.replace(' ', '')}:rate"
+        """Fetch live MCX price for a given grade (synchronous).
 
-        # TODO: Check Redis cache when available
-        # if self.redis:
-        #     cached = self.redis.get(cache_key)
-        #     if cached:
-        #         return PriceResult(price_per_ton=float(cached), source="cache", as_of="today")
+        Priority:
+        1. In-process cache (15 min TTL)
+        2. Serper web search → Groq parse
+        3. Fallback to hardcoded base price
+        """
+        now = time.time()
 
+        # 1. Check in-process cache
+        if grade in self._price_cache:
+            cached_price, cached_at = self._price_cache[grade]
+            age = now - cached_at
+            if age < self._cache_ttl:
+                logger.info(
+                    "MCX price cache HIT | grade=%s price=%.0f age=%.0fs",
+                    grade, cached_price, age,
+                )
+                return PriceResult(
+                    price_per_ton=cached_price,
+                    source="cache",
+                    as_of=f"cached {int(age)}s ago",
+                )
+
+        # 2. Live Serper + LLM parse
         try:
-            # Serper web search (synchronous call)
             query = f"MCX steel price today {grade} TMT bar India per ton"
             results = self.serper.search(query, num=5)
 
-            # Parse search results with LLM (synchronous call)
             prompt = f"""
 Extract the current steel price per metric ton (₹/ton) from these search results.
 Grade: {grade}
@@ -72,34 +93,48 @@ Search Results:
 Return JSON: {{"price_per_ton": <number>, "source": "<site>", "as_of": "<date>"}}
 If you cannot find a reliable price, return {{"price_per_ton": null}}.
 """
-
             price_data = self.groq.call(
                 system_prompt="You are a pricing analyst. Extract steel prices from search results. Return ONLY valid JSON.",
                 user_prompt=prompt,
                 model="mixtral-8x7b-32768",
-                temperature=0.1
+                temperature=0.1,
             )
 
             price_json = json.loads(price_data)
 
             if price_json.get("price_per_ton"):
-                # TODO: Cache in Redis when available
-                # if self.redis:
-                #     self.redis.setex(cache_key, int(os.getenv("MCX_CACHE_TTL_SECONDS", 900)), str(price_json["price_per_ton"]))
-                return PriceResult(
-                    price_per_ton=price_json["price_per_ton"],
-                    source=price_json.get("source", "serper"),
-                    as_of=price_json.get("as_of", "today")
+                price_val = float(price_json["price_per_ton"])
+                # Store in in-process cache
+                self._price_cache[grade] = (price_val, now)
+                logger.info(
+                    "MCX price LIVE | grade=%s price=%.0f source=%s",
+                    grade, price_val, price_json.get("source", "serper"),
                 )
-        except Exception as e:
-            print(f"Error fetching MCX price for {grade}: {e}")
+                return PriceResult(
+                    price_per_ton=price_val,
+                    source=price_json.get("source", "serper"),
+                    as_of=price_json.get("as_of", "today"),
+                )
+        except Exception as exc:
+            logger.warning("Error fetching live MCX price for %s: %s", grade, exc)
 
-        # Fallback to base price
+        # 3. Fallback to last known cached price (even if stale)
+        if grade in self._price_cache:
+            cached_price, _ = self._price_cache[grade]
+            logger.warning("Using stale cached price for %s: %.0f", grade, cached_price)
+            return PriceResult(
+                price_per_ton=cached_price,
+                source="stale-cache",
+                as_of="stale",
+            )
+
+        # 4. Static fallback
         fallback_price = self.BASE_FALLBACK_PRICES.get(grade, 60000)
+        logger.warning("MCX price FALLBACK | grade=%s price=%.0f", grade, fallback_price)
         return PriceResult(
             price_per_ton=fallback_price,
             source="fallback",
-            as_of="today"
+            as_of="today",
         )
 
     def calculate_weight(self, item) -> WeightResult:
