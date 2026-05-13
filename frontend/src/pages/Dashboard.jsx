@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2, XCircle, Loader2, ArrowRight, RefreshCw } from "lucide-react"
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"
+const API_BASE = import.meta.env.VITE_API_URL || "https://rfq-dtvm.onrender.com/api/v1"
 
 function AnimatedCounter({ value, duration = 400 }) {
   const [display, setDisplay] = useState(0)

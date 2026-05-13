@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { Upload as UploadIcon, FileText, Image, File, X, CheckCircle2, AlertCircle, Loader2, Type } from "lucide-react"
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"
+const API_BASE = import.meta.env.VITE_API_URL || "https://rfq-dtvm.onrender.com/api/v1"
 
 const ACCEPTED_TYPES = {
   "application/pdf": { icon: FileText, label: "PDF", color: "text-rose-600" },

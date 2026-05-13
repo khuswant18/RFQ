@@ -101,7 +101,7 @@ function App() {
 function HealthPage() {
   const [health, setHealth] = React.useState(null)
   React.useEffect(() => {
-    fetch('http://localhost:8000/health').then(r => r.json()).then(setHealth).catch(() => setHealth({ status: 'unreachable' }))
+    fetch('https://rfq-dtvm.onrender.com/health').then(r => r.json()).then(setHealth).catch(() => setHealth({ status: 'unreachable' }))
   }, [])
   return (
     <div className="animate-fade-in max-w-2xl">

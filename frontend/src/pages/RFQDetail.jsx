@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { ArrowLeft, Download, Send, Clock, CheckCircle2, XCircle, Loader2, FileText, Cpu, DollarSign, Receipt, ChevronRight, AlertTriangle, Timer } from "lucide-react"
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"
+const API_BASE = import.meta.env.VITE_API_URL || "https://rfq-dtvm.onrender.com/api/v1"
 
 const PIPELINE_STEPS = [
   { key: "received", label: "Received", icon: FileText },
