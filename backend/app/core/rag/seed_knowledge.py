@@ -36,7 +36,7 @@ class KnowledgeSeeder:
             doc = f"{item['is_code']}: {item['title']}. Grades: {', '.join(item['grades'])}. {item['description']}"
             docs.append(doc)
             ids.append(item["id"])
-            metadatas.append({"is_code": item["is_code"], "grades": item["grades"]})
+            metadatas.append({"is_code": item["is_code"], "grades": ", ".join(item["grades"])})
 
         if chroma:
             chroma.add_documents("is_codes", docs, ids, metadatas)

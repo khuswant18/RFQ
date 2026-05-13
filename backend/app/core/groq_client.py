@@ -1,6 +1,7 @@
-"""Groq Client with key rotation."""
+"""Groq Client with key rotation and mock support."""
 import os
 import time
+import json
 from typing import List, Optional, Dict, Any
 
 
@@ -20,7 +21,7 @@ class GroqKeyRotator:
 
 
 class GroqClient:
-    """Groq API client with key rotation and async support."""
+    """Groq API client with key rotation, sync/async support, and mock mode."""
 
     def __init__(self):
         # Load up to 5 Groq API keys from environment
@@ -33,7 +34,7 @@ class GroqClient:
         if not self.keys:
             print("⚠️  No Groq API keys found. Using mock-only mode.")
 
-        self.key_rotator = self.keys and GroqKeyRotator(self.keys) or None
+        self.key_rotator = GroqKeyRotator(self.keys) if self.keys else None
         self.base_url = "https://api.groq.com/openai/v1"
 
     def _use_mock(self) -> bool:
@@ -43,13 +44,14 @@ class GroqClient:
              model: str = "llama3-70b-8192", temperature: float = 0.7,
              max_tokens: int = 4096) -> str:
         """Make a synchronous call to Groq API."""
-        import requests
-
+        # Check mock mode FIRST — before touching key_rotator
         if self._use_mock():
             return self._mock_call(system_prompt, user_prompt, model)
 
         if not self.key_rotator:
             raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
+
+        import requests
 
         api_key = self.key_rotator.get_key()
 
@@ -71,7 +73,8 @@ class GroqClient:
         response = requests.post(
             f"{self.base_url}/chat/completions",
             headers=headers,
-            json=payload
+            json=payload,
+            timeout=60
         )
 
         response.raise_for_status()
@@ -79,17 +82,24 @@ class GroqClient:
 
         return result["choices"][0]["message"]["content"]
 
+    def call_sync(self, system_prompt: str, user_prompt: str,
+                  model: str = "llama3-70b-8192", temperature: float = 0.7,
+                  max_tokens: int = 4096) -> str:
+        """Alias for call() — explicitly synchronous."""
+        return self.call(system_prompt, user_prompt, model, temperature, max_tokens)
+
     async def call_async(self, system_prompt: str, user_prompt: str,
                           model: str = "llama3-70b-8192", temperature: float = 0.7,
                           max_tokens: int = 4096) -> str:
         """Make an async call to Groq API."""
-        import aiohttp
-
+        # Check mock mode FIRST
         if self._use_mock():
             return self._mock_call(system_prompt, user_prompt, model)
 
         if not self.key_rotator:
             raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
+
+        import aiohttp
 
         api_key = self.key_rotator.get_key()
 
@@ -112,15 +122,17 @@ class GroqClient:
             async with session.post(
                 f"{self.base_url}/chat/completions",
                 headers=headers,
-                json=payload
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=60)
             ) as response:
                 response.raise_for_status()
                 result = await response.json()
                 return result["choices"][0]["message"]["content"]
 
     def call_vision(self, system_prompt: str, image_data: str,
-                    model: str = "llama3-70b-8192") -> Dict[str, Any]:
+                    model: str = "llava-v1.5-7b-4096-preview") -> Dict[str, Any]:
         """Make a vision call to Groq API for image understanding."""
+        # Check mock mode FIRST
         if self._use_mock():
             return self._mock_vision_call(system_prompt, image_data)
 
@@ -137,7 +149,7 @@ class GroqClient:
         }
 
         payload = {
-            "model": "llama3-70b-8192",
+            "model": model,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {
@@ -156,16 +168,27 @@ class GroqClient:
             response = requests.post(
                 f"{self.base_url}/chat/completions",
                 headers=headers,
-                json=payload
+                json=payload,
+                timeout=60
             )
             response.raise_for_status()
             result = response.json()
             text = result["choices"][0]["message"]["content"]
-            return {
-                "extracted_text": text,
-                "confidence": 0.85,
-                "language_detected": "en"
-            }
+
+            # Try to parse as JSON if the model returned JSON
+            try:
+                parsed = json.loads(text)
+                return {
+                    "extracted_text": parsed.get("extracted_text", text),
+                    "confidence": parsed.get("confidence", 0.85),
+                    "language_detected": parsed.get("language_detected", "en")
+                }
+            except json.JSONDecodeError:
+                return {
+                    "extracted_text": text,
+                    "confidence": 0.85,
+                    "language_detected": "en"
+                }
         except Exception as e:
             print(f"Groq vision call failed: {e}. Falling back to Tesseract.")
             return {
@@ -174,16 +197,23 @@ class GroqClient:
                 "language_detected": "en"
             }
 
+    # ==================== Mock Responses ====================
+
     def _mock_call(self, system_prompt: str, user_prompt: str, model: str) -> str:
         """Return a mock response for testing."""
         lower_prompt = user_prompt.lower()
-        # Extract intent from user prompt for realistic mock responses
-        if "price" in lower_prompt and "mcx" in lower_prompt:
+        lower_system = system_prompt.lower()
+
+        # Price extraction mock
+        if "price" in lower_prompt and ("mcx" in lower_prompt or "steel" in lower_prompt):
             return '{"price_per_ton": 58000, "source": "mock", "as_of": "today"}'
-        elif "extract" in lower_prompt or "ocr" in system_prompt.lower():
-            return '{"extracted_text": "12mm Sariya Fe500 10 ton", "confidence": 0.9, "language_detected": "mixed"}'
-        elif "ner" in system_prompt.lower() or "extract" in lower_prompt or "sariya" in lower_prompt or "fe500" in lower_prompt:
-            # Return realistic steel RFQ entities for testing
+
+        # OCR extraction mock
+        if "ocr" in lower_system or ("extract" in lower_prompt and "image" in lower_prompt):
+            return '{"extracted_text": "12mm Sariya Fe500 10 ton Surat", "confidence": 0.9, "language_detected": "mixed"}'
+
+        # NER / entity extraction mock
+        if "metallurgist" in lower_system or "extract" in lower_system or "ner" in lower_system:
             mock_entities = {
                 "line_items": [
                     {
@@ -205,15 +235,28 @@ class GroqClient:
                 "price_inclusive_gst": False,
                 "overall_confidence": 0.92
             }
-            import json
             return json.dumps(mock_entities)
-        else:
-            return '{"response": "Mock response from Groq"}'
+
+        # WhatsApp summary mock
+        if "whatsapp" in lower_system or "whatsapp" in lower_prompt:
+            return (
+                "Dear Sir/Madam,\n\n"
+                "Thank you for your enquiry. Please find attached our quotation.\n\n"
+                "Quote Summary:\n"
+                "- Material: TMT Bar Fe500 12mm\n"
+                "- Quantity: 10 MT\n"
+                "- Total: ₹6,84,400\n\n"
+                "Quote PDF attached. Valid for 24 hours.\n\n"
+                "Regards,\nDemo Steel Works"
+            )
+
+        # Default mock
+        return '{"response": "Mock response from Groq"}'
 
     def _mock_vision_call(self, system_prompt: str, image_data: str) -> Dict[str, Any]:
         """Return a mock vision response for testing."""
         return {
-            "extracted_text": "12mm Sariya Fe500 10 ton Surat",
+            "extracted_text": "12mm Sariya Fe500 10 ton delivery to Sachin GIDC, Surat 394230",
             "confidence": 0.9,
             "language_detected": "mixed"
         }

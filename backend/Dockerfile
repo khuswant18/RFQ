@@ -1,29 +1,27 @@
 FROM python:3.11-slim
 
-WORKDIR /app
-
-# Install system dependencies for WeasyPrint and Tesseract
-RUN apt-get update && apt-get install -y \
-    libcairo2 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libgdk-pixbuf-2.0-0 \
-    libffi-dev \
-    shared-mime-info \
-    tesseract-ocr \
-    tesseract-ocr-hin \
+# Install system dependencies for WeasyPrint, Tesseract, and OpenCV
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 \
+    libffi-dev libcairo2 libglib2.0-0 \
+    tesseract-ocr tesseract-ocr-eng tesseract-ocr-hin \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+WORKDIR /app
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
 COPY . .
 
 # Create storage directories
-RUN mkdir -p storage/quotes storage/uploads
+RUN mkdir -p storage/quotes data/chroma
 
 EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

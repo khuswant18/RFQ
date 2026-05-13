@@ -1,3 +1,12 @@
 .env
 .env.example
-gstack 
+gstack
+__pycache__/
+*.py[cod]
+*$py.class
+storage/
+data/chroma/
+node_modules/
+dist/
+build/
+.DS_Store

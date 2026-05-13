@@ -55,8 +55,27 @@ Return JSON: { "extracted_text": "...", "confidence": 0.0-1.0, "language_detecte
 
     def run(self, ocr_input: OCRInput) -> OCROutput:
         """Run OCR on the input file."""
+        file_path = ocr_input.file_path
+        
+        # Handle PDF to Image conversion
+        if ocr_input.file_type.lower() == "pdf":
+            try:
+                import fitz  # PyMuPDF
+                doc = fitz.open(file_path)
+                page = doc.load_page(0)
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom for better OCR
+                img_path = file_path.replace(".pdf", "_page0.png")
+                pix.save(img_path)
+                file_path = img_path
+            except ImportError:
+                print("PyMuPDF not installed. Cannot process PDF.")
+                return OCROutput(raw_text="", ocr_confidence=0.0, language_detected="en", page_count=0)
+            except Exception as e:
+                print(f"Failed to convert PDF to image: {e}")
+                return OCROutput(raw_text="", ocr_confidence=0.0, language_detected="en", page_count=0)
+
         # Preprocess image
-        preprocessed_path = self.preprocess_image(ocr_input.file_path)
+        preprocessed_path = self.preprocess_image(file_path)
 
         try:
             # Attempt 1: Groq Vision (base64 image)
