@@ -1,6 +1,6 @@
 """SQLAlchemy database setup with async engine support."""
 import os
-from typing import Optional
+from typing import Generator, Optional
 
 # SQLAlchemy is optional — graceful fallback to in-memory store
 try:
@@ -15,7 +15,7 @@ except ImportError:
     SQLALCHEMY_AVAILABLE = False
     Base = None  # type: ignore
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+DATABASE_URL = os.getenv("DATABASE_URL", "") or "sqlite:///./srip.db"
 
 _engine = None
 _SessionLocal = None
@@ -25,13 +25,17 @@ def get_engine():
     """Get or create the SQLAlchemy engine."""
     global _engine
     if _engine is None and SQLALCHEMY_AVAILABLE and DATABASE_URL:
-        _engine = create_engine(
-            DATABASE_URL,
-            pool_size=10,
-            max_overflow=20,
-            pool_pre_ping=True,
-            echo=os.getenv("SQL_ECHO", "false").lower() == "true",
-        )
+        engine_kwargs = {
+            "pool_pre_ping": True,
+            "echo": os.getenv("SQL_ECHO", "false").lower() == "true",
+        }
+        if DATABASE_URL.startswith("sqlite"):
+            engine_kwargs["connect_args"] = {"check_same_thread": False}
+        else:
+            engine_kwargs["pool_size"] = 10
+            engine_kwargs["max_overflow"] = 20
+
+        _engine = create_engine(DATABASE_URL, **engine_kwargs)
     return _engine
 
 
@@ -46,12 +50,28 @@ def get_session():
     return _SessionLocal()
 
 
+def get_db() -> Generator:
+    """FastAPI dependency to provide a DB session."""
+    session = get_session()
+    if session is None:
+        yield None
+        return
+    try:
+        yield session
+    finally:
+        session.close()
+
+
 def init_db():
     """Initialize database tables."""
     engine = get_engine()
     if engine is None:
         print("⚠️  DATABASE_URL not configured. Using in-memory store.")
         return
+    try:
+        from app.models import db_models  # noqa: F401
+    except Exception as exc:
+        print(f"⚠️  Failed to import DB models: {exc}")
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables created.")
 

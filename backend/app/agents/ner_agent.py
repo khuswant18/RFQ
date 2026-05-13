@@ -106,40 +106,31 @@ If a field cannot be determined, set it to null and confidence to 0.
 
     def run(self, ner_input: NERInput) -> NEROutput:
         """Run NER extraction on the input text."""
-        # Retrieve context from ChromaDB
+        # Retrieve context from ChromaDB (synonyms first to ground grade/alias mapping)
         is_context, synonyms = self.retrieve_steel_context(ner_input.raw_text)
 
-        # Augment prompt with retrieved context
         system_prompt = self.SYSTEM_PROMPT.format(
             retrieved_is_code_context=is_context,
             retrieved_synonyms=synonyms
         )
 
-        # Call LLM
-        result = self.groq.call(
-            system_prompt=system_prompt,
-            user_prompt=ner_input.raw_text,
-            model="llama3-70b-8192",
-            temperature=0.1
-        )
-
-        # Parse JSON output
         try:
+            result = self.groq.call(
+                system_prompt=system_prompt,
+                user_prompt=ner_input.raw_text,
+                model="llama3-70b-8192",
+                temperature=0.1
+            )
             entities = json.loads(result)
-        except json.JSONDecodeError:
-            entities = {
+            entities["rfq_id"] = ner_input.rfq_id
+            return NEROutput.model_validate(entities)
+        except Exception:
+            fallback = {
+                "rfq_id": ner_input.rfq_id,
                 "line_items": [],
                 "language": "en",
                 "is_sub_inquiry": False,
                 "price_inclusive_gst": False,
                 "overall_confidence": 0.0
             }
-
-        return NEROutput(
-            rfq_id=ner_input.rfq_id,
-            line_items=entities.get("line_items", []),
-            language=entities.get("language", "en"),
-            is_sub_inquiry=entities.get("is_sub_inquiry", False),
-            price_inclusive_gst=entities.get("price_inclusive_gst", False),
-            overall_confidence=entities.get("overall_confidence", 0.0)
-        )
+            return NEROutput.model_validate(fallback)

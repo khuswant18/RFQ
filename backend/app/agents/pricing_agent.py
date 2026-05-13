@@ -34,6 +34,7 @@ class PricingAgent:
             self.chroma = None
             print("Warning: ChromaDB not available. Pricing agent running in standalone mode.")
         self.redis = None  # Will be initialized with actual Redis client
+        self._price_cache = {}
 
         # Fallback base prices (₹/MT) when live pricing unavailable
         self.BASE_FALLBACK_PRICES = {
@@ -50,6 +51,17 @@ class PricingAgent:
     def fetch_mcx_price(self, grade: str) -> PriceResult:
         """Fetch live MCX price for a given grade (synchronous)."""
         cache_key = f"mcx:{grade.replace(' ', '')}:rate"
+        cache_ttl = int(os.getenv("MCX_CACHE_TTL_SECONDS", "900"))
+
+        cached = self._price_cache.get(cache_key)
+        if cached:
+            age_seconds = time.time() - cached["timestamp"]
+            if age_seconds <= cache_ttl:
+                return PriceResult(
+                    price_per_ton=cached["price_per_ton"],
+                    source=cached["source"],
+                    as_of=cached.get("as_of", "today")
+                )
 
         # TODO: Check Redis cache when available
         # if self.redis:
@@ -59,7 +71,7 @@ class PricingAgent:
 
         try:
             # Serper web search (synchronous call)
-            query = f"MCX steel price today {grade} TMT bar India per ton"
+            query = "MCX steel TMT price today"
             results = self.serper.search(query, num=5)
 
             # Parse search results with LLM (synchronous call)
@@ -83,9 +95,12 @@ If you cannot find a reliable price, return {{"price_per_ton": null}}.
             price_json = json.loads(price_data)
 
             if price_json.get("price_per_ton"):
-                # TODO: Cache in Redis when available
-                # if self.redis:
-                #     self.redis.setex(cache_key, int(os.getenv("MCX_CACHE_TTL_SECONDS", 900)), str(price_json["price_per_ton"]))
+                self._price_cache[cache_key] = {
+                    "price_per_ton": price_json["price_per_ton"],
+                    "source": price_json.get("source", "serper"),
+                    "as_of": price_json.get("as_of", "today"),
+                    "timestamp": time.time(),
+                }
                 return PriceResult(
                     price_per_ton=price_json["price_per_ton"],
                     source=price_json.get("source", "serper"),
@@ -94,8 +109,21 @@ If you cannot find a reliable price, return {{"price_per_ton": null}}.
         except Exception as e:
             print(f"Error fetching MCX price for {grade}: {e}")
 
+        if cached:
+            return PriceResult(
+                price_per_ton=cached["price_per_ton"],
+                source=cached["source"],
+                as_of=cached.get("as_of", "today")
+            )
+
         # Fallback to base price
         fallback_price = self.BASE_FALLBACK_PRICES.get(grade, 60000)
+        self._price_cache[cache_key] = {
+            "price_per_ton": fallback_price,
+            "source": "fallback",
+            "as_of": "today",
+            "timestamp": time.time(),
+        }
         return PriceResult(
             price_per_ton=fallback_price,
             source="fallback",
