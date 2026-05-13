@@ -6,7 +6,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = env("postgresql://neondb_owner:npg_gJk7cxIER6hB@ep-divine-water-ap49a6yc-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
 }
 
 model RFQ {
