@@ -49,7 +49,9 @@ Return JSON: { "extracted_text": "...", "confidence": 0.0-1.0, "language_detecte
             img = img.resize((1200, int(img.height * ratio)), Image.Resampling.LANCZOS)
 
         # Save preprocessed image
-        preprocessed_path = file_path.replace(".", "_preprocessed.")
+        import os
+        base, ext = os.path.splitext(file_path)
+        preprocessed_path = f"{base}_preprocessed{ext}"
         img.save(preprocessed_path)
         return preprocessed_path
 
@@ -85,7 +87,7 @@ Return JSON: { "extracted_text": "...", "confidence": 0.0-1.0, "language_detecte
             result = self.groq.call_vision(
                 system_prompt=self.SYSTEM_PROMPT,
                 image_data=image_data,
-                model="llama3-70b-8192"
+                model="llama-3.2-11b-vision-preview"
             )
 
             if result.get("confidence", 0) < 0.5 and TESSERACT_AVAILABLE:

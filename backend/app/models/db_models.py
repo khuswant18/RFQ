@@ -6,7 +6,7 @@ from typing import Optional
 try:
     from sqlalchemy import (
         Column, String, Integer, Float, Boolean, Text, DateTime,
-        ForeignKey, JSON, Numeric
+        ForeignKey, JSON, Numeric, Index
     )
     from sqlalchemy.orm import relationship
     from app.core.database import Base
@@ -30,10 +30,16 @@ if MODELS_AVAILABLE:
     class RFQRecord(Base):
         """RFQ master record."""
         __tablename__ = "rfqs"
+        __table_args__ = (
+            Index("ix_rfqs_status", "status"),
+            Index("ix_rfqs_received_at", "received_at"),
+        )
 
         rfq_id = Column(String(36), primary_key=True, default=_uuid)
         source_channel = Column(String(20), nullable=False)
         sender_contact = Column(String(50))
+        file_type = Column(String(20))
+        file_path = Column(Text)
         raw_file_url = Column(Text)
         raw_text = Column(Text)
         received_at = Column(DateTime, default=_now)

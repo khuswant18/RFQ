@@ -1,8 +1,13 @@
 """Groq Client with key rotation and mock support."""
+import asyncio
+import json
+import logging
 import os
 import time
-import json
 from typing import List, Optional, Dict, Any
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class GroqKeyRotator:
@@ -36,29 +41,44 @@ class GroqClient:
 
         self.key_rotator = GroqKeyRotator(self.keys) if self.keys else None
         self.base_url = "https://api.groq.com/openai/v1"
+        self.logger = logging.getLogger("srip.groq")
 
     def _use_mock(self) -> bool:
         return os.getenv("MOCK_GROQ", "true").lower() == "true"
 
+    def _key_candidates(self) -> List[str]:
+        if not self.keys:
+            return []
+        primary = self.keys[0]
+        secondary = self.keys[1] if len(self.keys) > 1 else None
+        rest = [k for k in self.keys if k not in {primary, secondary}]
+        candidates = [primary]
+        if secondary:
+            candidates.append(secondary)
+        candidates.extend(rest)
+        return candidates
+
+    def _log_call(self, model: str, latency_ms: float, usage: Dict[str, Any]):
+        total_tokens = usage.get("total_tokens") if usage else None
+        self.logger.info(
+            "groq_call model=%s latency_ms=%.2f total_tokens=%s",
+            model,
+            latency_ms,
+            total_tokens,
+        )
+
     def call(self, system_prompt: str, user_prompt: str,
-             model: str = "llama3-70b-8192", temperature: float = 0.7,
+             model: str = "llama-3.3-70b-versatile", temperature: float = 0.7,
              max_tokens: int = 4096) -> str:
         """Make a synchronous call to Groq API."""
         # Check mock mode FIRST — before touching key_rotator
         if self._use_mock():
             return self._mock_call(system_prompt, user_prompt, model)
 
-        if not self.key_rotator:
+        if not self.keys:
             raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
 
         import requests
-
-        api_key = self.key_rotator.get_key()
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
 
         payload = {
             "model": model,
@@ -70,43 +90,50 @@ class GroqClient:
             "max_tokens": max_tokens
         }
 
-        response = requests.post(
-            f"{self.base_url}/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=60
-        )
+        last_error = None
+        for attempt in range(1, 4):
+            for api_key in self._key_candidates():
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                start = time.time()
+                try:
+                    response = requests.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                        timeout=60
+                    )
+                    response.raise_for_status()
+                    result = response.json()
+                    latency_ms = (time.time() - start) * 1000
+                    self._log_call(model, latency_ms, result.get("usage", {}))
+                    return result["choices"][0]["message"]["content"]
+                except Exception as exc:
+                    last_error = exc
+            time.sleep(2 ** (attempt - 1))
 
-        response.raise_for_status()
-        result = response.json()
-
-        return result["choices"][0]["message"]["content"]
+        raise RuntimeError(f"Groq API call failed after retries: {last_error}")
 
     def call_sync(self, system_prompt: str, user_prompt: str,
-                  model: str = "llama3-70b-8192", temperature: float = 0.7,
+                  model: str = "llama-3.3-70b-versatile", temperature: float = 0.7,
                   max_tokens: int = 4096) -> str:
         """Alias for call() — explicitly synchronous."""
         return self.call(system_prompt, user_prompt, model, temperature, max_tokens)
 
     async def call_async(self, system_prompt: str, user_prompt: str,
-                          model: str = "llama3-70b-8192", temperature: float = 0.7,
+                          model: str = "llama-3.3-70b-versatile", temperature: float = 0.7,
                           max_tokens: int = 4096) -> str:
         """Make an async call to Groq API."""
         # Check mock mode FIRST
         if self._use_mock():
             return self._mock_call(system_prompt, user_prompt, model)
 
-        if not self.key_rotator:
+        if not self.keys:
             raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
 
         import aiohttp
-
-        api_key = self.key_rotator.get_key()
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
 
         payload = {
             "model": model,
@@ -118,35 +145,44 @@ class GroqClient:
             "max_tokens": max_tokens
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=60)
-            ) as response:
-                response.raise_for_status()
-                result = await response.json()
-                return result["choices"][0]["message"]["content"]
+        last_error = None
+        for attempt in range(1, 4):
+            for api_key in self._key_candidates():
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                start = time.time()
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(
+                            f"{self.base_url}/chat/completions",
+                            headers=headers,
+                            json=payload,
+                            timeout=aiohttp.ClientTimeout(total=60)
+                        ) as response:
+                            response.raise_for_status()
+                            result = await response.json()
+                            latency_ms = (time.time() - start) * 1000
+                            self._log_call(model, latency_ms, result.get("usage", {}))
+                            return result["choices"][0]["message"]["content"]
+                except Exception as exc:
+                    last_error = exc
+            await asyncio.sleep(2 ** (attempt - 1))
+
+        raise RuntimeError(f"Groq API call failed after retries: {last_error}")
 
     def call_vision(self, system_prompt: str, image_data: str,
-                    model: str = "llava-v1.5-7b-4096-preview") -> Dict[str, Any]:
+                    model: str = "llama-3.2-11b-vision-preview") -> Dict[str, Any]:
         """Make a vision call to Groq API for image understanding."""
         # Check mock mode FIRST
         if self._use_mock():
             return self._mock_vision_call(system_prompt, image_data)
 
-        if not self.key_rotator:
+        if not self.keys:
             raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
 
         import requests
-
-        api_key = self.key_rotator.get_key()
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
 
         payload = {
             "model": model,
@@ -164,38 +200,50 @@ class GroqClient:
             "max_tokens": 4096
         }
 
-        try:
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=60
-            )
-            response.raise_for_status()
-            result = response.json()
-            text = result["choices"][0]["message"]["content"]
+        last_error = None
+        for attempt in range(1, 4):
+            for api_key in self._key_candidates():
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                start = time.time()
+                try:
+                    response = requests.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                        timeout=60
+                    )
+                    response.raise_for_status()
+                    result = response.json()
+                    latency_ms = (time.time() - start) * 1000
+                    self._log_call(model, latency_ms, result.get("usage", {}))
+                    text = result["choices"][0]["message"]["content"]
 
-            # Try to parse as JSON if the model returned JSON
-            try:
-                parsed = json.loads(text)
-                return {
-                    "extracted_text": parsed.get("extracted_text", text),
-                    "confidence": parsed.get("confidence", 0.85),
-                    "language_detected": parsed.get("language_detected", "en")
-                }
-            except json.JSONDecodeError:
-                return {
-                    "extracted_text": text,
-                    "confidence": 0.85,
-                    "language_detected": "en"
-                }
-        except Exception as e:
-            print(f"Groq vision call failed: {e}. Falling back to Tesseract.")
-            return {
-                "extracted_text": "",
-                "confidence": 0.0,
-                "language_detected": "en"
-            }
+                    try:
+                        parsed = json.loads(text)
+                        return {
+                            "extracted_text": parsed.get("extracted_text", text),
+                            "confidence": parsed.get("confidence", 0.85),
+                            "language_detected": parsed.get("language_detected", "en")
+                        }
+                    except json.JSONDecodeError:
+                        return {
+                            "extracted_text": text,
+                            "confidence": 0.85,
+                            "language_detected": "en"
+                        }
+                except Exception as exc:
+                    last_error = exc
+            time.sleep(2 ** (attempt - 1))
+
+        print(f"Groq vision call failed after retries: {last_error}. Falling back to Tesseract.")
+        return {
+            "extracted_text": "",
+            "confidence": 0.0,
+            "language_detected": "en"
+        }
 
     # ==================== Mock Responses ====================
 

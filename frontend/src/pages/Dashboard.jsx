@@ -4,7 +4,7 @@ import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2, XCircle, Load
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"
 
-function AnimatedCounter({ value, duration = 800 }) {
+function AnimatedCounter({ value, duration = 400 }) {
   const [display, setDisplay] = useState(0)
   useEffect(() => {
     let start = 0
@@ -20,13 +20,13 @@ function AnimatedCounter({ value, duration = 800 }) {
 }
 
 const statusConfig = {
-  received: { icon: Clock, color: "blue", label: "Received" },
-  processing: { icon: Loader2, color: "amber", label: "Processing" },
-  extracted: { icon: FileText, color: "cyan", label: "Extracted" },
-  priced: { icon: TrendingUp, color: "violet", label: "Priced" },
-  quoted: { icon: CheckCircle2, color: "emerald", label: "Quoted" },
-  failed: { icon: XCircle, color: "rose", label: "Failed" },
-  review_needed: { icon: AlertTriangle, color: "orange", label: "Review" },
+  received: { icon: Clock, label: "Received", badge: "received" },
+  processing: { icon: Loader2, label: "Processing", badge: "processing" },
+  extracted: { icon: FileText, label: "Extracted", badge: "extracted" },
+  priced: { icon: TrendingUp, label: "Priced", badge: "priced" },
+  quoted: { icon: CheckCircle2, label: "Quoted", badge: "quoted" },
+  failed: { icon: XCircle, label: "Failed", badge: "failed" },
+  review_needed: { icon: AlertTriangle, label: "Review", badge: "review_needed" },
 }
 
 function Dashboard() {
@@ -61,25 +61,25 @@ function Dashboard() {
   const rate = total > 0 ? Math.round((quoted / total) * 100) : 0
 
   const stats = [
-    { label: "Total RFQs", value: total, icon: FileText, gradient: "from-primary-600 to-primary-400" },
-    { label: "Quoted", value: quoted, icon: CheckCircle2, gradient: "from-emerald-600 to-emerald-400" },
-    { label: "Processing", value: processing, icon: Loader2, gradient: "from-amber-600 to-amber-400" },
-    { label: "Failed", value: failed, icon: XCircle, gradient: "from-rose-600 to-rose-400" },
-    { label: "Conversion", value: rate, icon: TrendingUp, gradient: "from-accent-600 to-accent-400", suffix: "%" },
+    { label: "Total RFQs", value: total, icon: FileText, bg: "bg-primary/10", color: "text-primary" },
+    { label: "Quoted", value: quoted, icon: CheckCircle2, bg: "bg-emerald-50", color: "text-emerald-700" },
+    { label: "Processing", value: processing, icon: Loader2, bg: "bg-amber-50", color: "text-amber-700" },
+    { label: "Failed", value: failed, icon: XCircle, bg: "bg-rose-50", color: "text-rose-700" },
+    { label: "Conversion", value: rate, icon: TrendingUp, bg: "bg-primary-pale", color: "text-primary", suffix: "%" },
   ]
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pb-2">
         <div>
-          <h1 className="text-3xl font-bold text-gradient">Dashboard</h1>
-          <p className="text-surface-500 mt-1">Real-time RFQ processing overview</p>
+          <h1 className="text-2xl font-semibold text-primary">Dashboard</h1>
+          <p className="text-surface-muted mt-1 text-sm">Real-time RFQ processing overview</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-surface-600">Updated {lastRefresh.toLocaleTimeString()}</span>
-          <button onClick={fetchRfqs} className="p-2 rounded-lg hover:bg-surface-800 transition-colors">
-            <RefreshCw size={16} className="text-surface-400" />
+          <span className="text-xs text-surface-subtle font-medium">Updated {lastRefresh.toLocaleTimeString()}</span>
+          <button onClick={fetchRfqs} className="p-2 border border-surface-border rounded-btn hover:bg-surface-panel transition-colors text-surface-muted hover:text-surface-text">
+            <RefreshCw size={14} />
           </button>
         </div>
       </div>
@@ -87,80 +87,77 @@ function Dashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {stats.map((stat, i) => (
-          <div key={i} className="stat-card animate-slide-up" style={{ animationDelay: `${i * 80}ms` }}>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-surface-500 uppercase tracking-wider font-semibold">{stat.label}</span>
-              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center opacity-80`}>
-                <stat.icon size={16} className="text-white" />
+          <div key={i} className="stat-card">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-surface-muted uppercase tracking-wide font-medium">{stat.label}</span>
+              <div className={`w-8 h-8 rounded-md ${stat.bg} flex items-center justify-center`}>
+                <stat.icon size={16} className={stat.color} />
               </div>
             </div>
-            <div className="text-3xl font-bold text-surface-100">
+            <div className="text-2xl font-bold text-surface-text">
               <AnimatedCounter value={stat.value} />
-              {stat.suffix && <span className="text-lg text-surface-400">{stat.suffix}</span>}
+              {stat.suffix && <span className="text-sm text-surface-muted ml-1">{stat.suffix}</span>}
             </div>
           </div>
         ))}
       </div>
 
       {/* RFQ Table */}
-      <div className="glass-card overflow-hidden">
-        <div className="px-6 py-4 border-b border-surface-800/50 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Recent RFQs</h2>
-          <span className="text-xs text-surface-600">{total} total</span>
+      <div className="panel overflow-hidden">
+        <div className="px-5 py-4 border-b border-surface-border flex items-center justify-between bg-surface-50">
+          <h2 className="text-base font-semibold text-surface-text">Recent RFQs</h2>
+          <span className="badge badge-received">{total} total</span>
         </div>
 
         {loading ? (
           <div className="p-12 text-center">
-            <Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-3" />
-            <p className="text-surface-500">Loading RFQs...</p>
+            <Loader2 className="w-8 h-8 text-surface-subtle animate-spin mx-auto mb-3" />
+            <p className="text-surface-muted text-sm font-medium">Loading RFQs...</p>
           </div>
         ) : rfqs.length === 0 ? (
-          <div className="p-12 text-center">
-            <FileText className="w-12 h-12 text-surface-700 mx-auto mb-4" />
-            <p className="text-surface-500 text-lg">No RFQs yet</p>
-            <p className="text-surface-600 text-sm mt-1">Upload an RFQ to get started</p>
-            <Link to="/upload" className="btn-primary inline-flex items-center gap-2 mt-4">
-              Upload RFQ <ArrowRight size={16} />
+          <div className="p-16 text-center border-t border-surface-border">
+            <FileText className="w-10 h-10 text-surface-border mx-auto mb-3" />
+            <p className="text-surface-text font-medium">No RFQs yet</p>
+            <p className="text-surface-muted text-sm mt-1 mb-5">Upload an RFQ to get started with automation</p>
+            <Link to="/upload" className="btn-primary inline-flex items-center gap-2">
+              Upload RFQ <ArrowRight size={14} />
             </Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-surface-800/50">
-                  <th className="text-left px-6 py-3 text-xs text-surface-500 uppercase tracking-wider font-semibold">RFQ ID</th>
-                  <th className="text-left px-6 py-3 text-xs text-surface-500 uppercase tracking-wider font-semibold">Status</th>
-                  <th className="text-left px-6 py-3 text-xs text-surface-500 uppercase tracking-wider font-semibold">Channel</th>
-                  <th className="text-left px-6 py-3 text-xs text-surface-500 uppercase tracking-wider font-semibold">Type</th>
-                  <th className="text-left px-6 py-3 text-xs text-surface-500 uppercase tracking-wider font-semibold">Updated</th>
-                  <th className="px-6 py-3"></th>
+            <table className="w-full text-sm">
+              <thead className="bg-surface-panel/50 border-b border-surface-border">
+                <tr>
+                  <th className="text-left px-5 py-3 text-xs text-surface-muted font-medium w-[20%]">RFQ ID</th>
+                  <th className="text-left px-5 py-3 text-xs text-surface-muted font-medium w-[15%]">Status</th>
+                  <th className="text-left px-5 py-3 text-xs text-surface-muted font-medium w-[15%]">Channel</th>
+                  <th className="text-left px-5 py-3 text-xs text-surface-muted font-medium w-[15%]">Type</th>
+                  <th className="text-left px-5 py-3 text-xs text-surface-muted font-medium w-[25%]">Last Updated</th>
+                  <th className="px-5 py-3 w-[10%]"></th>
                 </tr>
               </thead>
-              <tbody>
-                {rfqs.map((rfq, i) => {
+              <tbody className="divide-y divide-surface-border">
+                {rfqs.map((rfq) => {
                   const sc = statusConfig[rfq.status] || statusConfig.received
                   return (
-                    <tr key={rfq.rfq_id}
-                      className="border-b border-surface-800/30 hover:bg-surface-800/30 transition-colors animate-slide-up"
-                      style={{ animationDelay: `${i * 50}ms` }}>
-                      <td className="px-6 py-4">
-                        <Link to={`/rfq/${rfq.rfq_id}`} className="font-mono text-sm text-primary-400 hover:text-primary-300 transition-colors">
-                          {rfq.rfq_id?.slice(0, 12)}...
+                    <tr key={rfq.rfq_id} className="hover:bg-surface-panel/30 transition-colors h-12 group">
+                      <td className="px-5 text-sm">
+                        <Link to={`/rfq/${rfq.rfq_id}`} className="font-mono text-primary hover:underline">
+                          {rfq.rfq_id?.slice(0, 8)}...{rfq.rfq_id?.slice(-4)}
                         </Link>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`badge badge-${rfq.status}`}>
-                          <sc.icon size={12} className={rfq.status === "processing" ? "animate-spin" : ""} />
+                      <td className="px-5">
+                        <span className={`badge badge-${sc.badge}`}>
                           {sc.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-surface-400">{rfq.source_channel || "api"}</td>
-                      <td className="px-6 py-4 text-sm text-surface-400">{rfq.file_type || "text"}</td>
-                      <td className="px-6 py-4 text-sm text-surface-500">
+                      <td className="px-5 text-surface-muted capitalize">{rfq.source_channel || "api"}</td>
+                      <td className="px-5 text-surface-muted uppercase">{rfq.file_type || "text"}</td>
+                      <td className="px-5 text-surface-muted font-mono text-[13px]">
                         {rfq.updated_at ? new Date(rfq.updated_at).toLocaleString() : "—"}
                       </td>
-                      <td className="px-6 py-4">
-                        <Link to={`/rfq/${rfq.rfq_id}`} className="text-surface-600 hover:text-primary-400 transition-colors">
+                      <td className="px-5 text-right">
+                        <Link to={`/rfq/${rfq.rfq_id}`} className="text-surface-subtle hover:text-primary transition-colors opacity-0 group-hover:opacity-100">
                           <ArrowRight size={16} />
                         </Link>
                       </td>

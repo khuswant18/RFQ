@@ -106,10 +106,9 @@ If a field cannot be determined, set it to null and confidence to 0.
 
     def run(self, ner_input: NERInput) -> NEROutput:
         """Run NER extraction on the input text."""
-        # Retrieve context from ChromaDB
+        # Retrieve context from ChromaDB (synonyms first to ground grade/alias mapping)
         is_context, synonyms = self.retrieve_steel_context(ner_input.raw_text)
 
-        # Augment prompt with retrieved context
         system_prompt = self.SYSTEM_PROMPT.format(
             retrieved_is_code_context=is_context,
             retrieved_synonyms=synonyms
@@ -119,14 +118,25 @@ If a field cannot be determined, set it to null and confidence to 0.
         result = self.groq.call(
             system_prompt=system_prompt,
             user_prompt=ner_input.raw_text,
-            model="llama3-70b-8192",
+            model="llama-3.3-70b-versatile",
             temperature=0.1
         )
 
         # Parse JSON output
         try:
-            entities = json.loads(result)
-        except json.JSONDecodeError:
+            # Strip markdown code blocks if the LLM wrapped the JSON
+            clean_result = result.strip()
+            if clean_result.startswith("```"):
+                clean_result = clean_result.strip("`")
+                if clean_result.startswith("json\n") or clean_result.startswith("json "):
+                    clean_result = clean_result[4:].strip()
+                elif clean_result.startswith("json"):
+                    clean_result = clean_result[4:].strip()
+            
+            entities = json.loads(clean_result)
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse NER JSON: {e}")
+            print(f"Raw LLM Output:\n{result}")
             entities = {
                 "line_items": [],
                 "language": "en",
@@ -137,9 +147,9 @@ If a field cannot be determined, set it to null and confidence to 0.
 
         return NEROutput(
             rfq_id=ner_input.rfq_id,
-            line_items=entities.get("line_items", []),
-            language=entities.get("language", "en"),
-            is_sub_inquiry=entities.get("is_sub_inquiry", False),
-            price_inclusive_gst=entities.get("price_inclusive_gst", False),
-            overall_confidence=entities.get("overall_confidence", 0.0)
+            line_items=entities.get("line_items") or [],
+            language=entities.get("language") or "en",
+            is_sub_inquiry=bool(entities.get("is_sub_inquiry")),
+            price_inclusive_gst=bool(entities.get("price_inclusive_gst")),
+            overall_confidence=float(entities.get("overall_confidence") or 0.0)
         )
