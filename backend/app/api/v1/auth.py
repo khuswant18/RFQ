@@ -32,23 +32,37 @@ class UserInfo(BaseModel):
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(request: LoginRequest):
     """Authenticate and get a JWT token."""
-    # Dev mode: accept admin/admin123
-    if request.username == "admin" and request.password == "admin123":
-        token = create_access_token({"sub": "admin", "role": "admin", "name": "SRIP Admin"})
-        return TokenResponse(access_token=token, username="admin", role="admin")
+    try:
+        # Dev mode: accept admin/admin123
+        if request.username == "admin" and request.password == "admin123":
+            token = create_access_token({"sub": "admin", "role": "admin", "name": "SRIP Admin"})
+            return TokenResponse(access_token=token, username="admin", role="admin")
 
-    if request.username == "operator" and request.password == "operator123":
-        token = create_access_token({"sub": "operator", "role": "operator", "name": "SRIP Operator"})
-        return TokenResponse(access_token=token, username="operator", role="operator")
+        if request.username == "operator" and request.password == "operator123":
+            token = create_access_token({"sub": "operator", "role": "operator", "name": "SRIP Operator"})
+            return TokenResponse(access_token=token, username="operator", role="operator")
 
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        print(f"❌ /auth/login error: {str(exc)}")
+        raise HTTPException(status_code=500, detail="Login failed. Check server logs.")
 
 
 @router.get("/auth/me", response_model=UserInfo)
 async def get_me(user: dict = Depends(get_current_user)):
     """Get current user info."""
-    return UserInfo(
-        username=user.get("username", ""),
-        role=user.get("role", ""),
-        full_name=user.get("full_name", ""),
-    )
+    try:
+        return UserInfo(
+            username=user.get("username", ""),
+            role=user.get("role", ""),
+            full_name=user.get("full_name", ""),
+        )
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        print(f"❌ /auth/me error: {str(exc)}")
+        raise HTTPException(status_code=500, detail="Failed to get user info. Check server logs.")
