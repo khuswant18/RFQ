@@ -1,0 +1,117 @@
+// Prisma schema for SRIP (Smart RFQ Intelligence Pipeline)
+
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model RFQ {
+  id                String    @id @default(uuid())
+  rfqId             String    @unique
+  sourceChannel    String    // "api", "whatsapp", "email"
+  senderContact    String?
+  fileType         String?   // "pdf", "image", "text"
+  filePath         String?
+  rawFileUrl       String?
+  rawText          String?
+  status           String    @default("received") // "received", "processing", "extracted", "priced", "quoted", "failed"
+  receivedAt       DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  error            String?
+  resultJson       String?   // JSON string
+
+  // Relations
+  lineItems        RFQLineItem[]
+  costs            RFQCost[]
+  quotes           RFQQuote[]
+  agentLogs        AgentLog[]
+
+  @@index([status])
+  @@index([receivedAt])
+  @@map("rfqs")
+}
+
+model RFQLineItem {
+  id               Int       @id @default(autoincrement())
+  rfqId            String
+  rfq              RFQ       @relation(fields: [rfqId], references: [rfqId], onDelete: Cascade)
+  materialType     String?   // "TMT_Bar", "Sariya", etc.
+  isCode           String?
+  grade            String?   // "Fe500", "Fe415"
+  shape            String?
+  diameterMm       Decimal?
+  widthMm          Decimal?
+  thicknessMm      Decimal?
+  lengthFt         Decimal?
+  quantityValue    Decimal?
+  quantityUnit     String?   // "ton", "kg", "piece"
+  destinationPin   String?
+  confidence       Decimal?
+  needsReview      Boolean   @default(false)
+
+  // Relation
+  costs            RFQCost[]
+
+  @@index([rfqId])
+  @@map("rfq_line_items")
+}
+
+model RFQCost {
+  id               Int       @id @default(autoincrement())
+  rfqId            String
+  rfq              RFQ       @relation(fields: [rfqId], references: [rfqId], onDelete: Cascade)
+  itemId           Int?
+  lineItem         RFQLineItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  basePricePerTon  Decimal?
+  totalWeightTon   Decimal?
+  materialCost     Decimal?
+  logisticsCost    Decimal?
+  processingCost   Decimal?
+  subtotal         Decimal?
+  gstType          String?   // "IGST", "SGST_CGST"
+  gstAmount        Decimal?
+  finalTotal       Decimal?
+  marginPercent    Decimal?
+  rateFetchedAt    DateTime?
+  hsnCode          String?
+
+  @@index([rfqId])
+  @@map("rfq_costs")
+}
+
+model RFQQuote {
+  id               Int       @id @default(autoincrement())
+  rfqId            String
+  rfq              RFQ       @relation(fields: [rfqId], references: [rfqId], onDelete: Cascade)
+  pdfUrl           String?
+  validityHours    Int       @default(24)
+  createdAt        DateTime  @default(now())
+  sentAt           DateTime?
+  sentVia          String?   // "whatsapp", "email", "api"
+
+  @@index([rfqId])
+  @@map("rfq_quotes")
+}
+
+model AgentLog {
+  id               Int       @id @default(autoincrement())
+  rfqId            String
+  rfq              RFQ       @relation(fields: [rfqId], references: [rfqId], onDelete: Cascade)
+  agentName        String    // "OCRAgent", "NERAgent", etc.
+  stepNumber       Int
+  inputHash        String?
+  outputSchema     String?   // JSON string
+  confidence       Decimal?
+  latencyMs        Int?
+  status           String    // "success", "failed", "pending"
+  errorMsg         String?
+  executedAt       DateTime  @default(now())
+
+  @@index([rfqId])
+  @@index([agentName])
+  @@map("agent_logs")
+}

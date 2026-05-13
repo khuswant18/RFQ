@@ -15,16 +15,32 @@ from app.core.rag.seed_knowledge import seed_chroma
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     print("🚀 Starting SRIP API Server...")
-    seed_chroma()
-    # Initialize database if configured
+    
+    # Initialize Prisma DB
     try:
-        from app.core.database import init_db, is_db_available
-        if is_db_available():
-            yield
-    except ImportError:
-        pass
+        from app.core.prisma_db import db
+        await db.connect()
+        print("✅ Prisma database connected")
+    except Exception as e:
+        print(f"⚠️  Prisma connection failed: {e}")
+    
+    # Seed RAG knowledge
+    try:
+        seed_chroma()
+    except Exception as e:
+        print(f"⚠️  RAG seeding failed: {e}")
+    
     print("✅ SRIP API Server ready.")
     yield
+    
+    # Shutdown
+    try:
+        from app.core.prisma_db import db
+        await db.disconnect()
+        print("✅ Prisma database disconnected")
+    except Exception as e:
+        print(f"⚠️  Prisma disconnection failed: {e}")
+    
     print("👋 SRIP API Server shutting down.")
 
 
@@ -81,10 +97,18 @@ app.include_router(webhook.router, prefix="/api/v1")
 @app.get("/health")
 async def health_check():
     """Health check endpoint for load balancers and monitoring."""
+    try:
+        from app.core.prisma_db import db
+        await db.rfq.find_first()
+        db_status = "connected"
+    except Exception:
+        db_status = "disconnected"
+    
     return {
         "status": "healthy",
         "version": "2.0.0",
         "service": "srip-api",
+        "database": db_status,
         "mock_mode": os.getenv("MOCK_GROQ", "true"),
     }
 
