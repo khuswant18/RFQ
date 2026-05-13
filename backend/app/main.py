@@ -38,10 +38,7 @@ app = FastAPI(
 )
 
 # CORS — allow frontend origins. Support wildcard via env var CORS_ORIGINS='*'
-cors_env = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000",
-)
+cors_env = os.getenv("CORS_ORIGINS", "*")
 if cors_env.strip() == "*":
     app.add_middleware(
         CORSMiddleware,
