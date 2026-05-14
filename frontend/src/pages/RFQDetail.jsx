@@ -25,21 +25,21 @@ function StatusStepper({ currentStatus }) {
         const StepIcon = step.icon
         return (
           <React.Fragment key={step.key}>
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-500
-              ${done ? "bg-emerald-500/10 text-emerald-400" : active ? "bg-primary-500/10 text-primary-400" : "text-surface-600"}`}>
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-btn transition-colors duration-150
+              ${done ? "bg-emerald-50 text-emerald-700" : active ? "bg-primary/10 text-primary" : "text-surface-subtle"}`}>
               <StepIcon size={14} className={active ? "animate-spin" : ""} />
-              <span className="text-xs font-medium hidden lg:inline">{step.label}</span>
+              <span className="text-xs font-semibold tracking-wide uppercase hidden lg:inline">{step.label}</span>
             </div>
             {i < PIPELINE_STEPS.length - 1 && (
-              <ChevronRight size={14} className={done ? "text-emerald-500" : "text-surface-700"} />
+              <ChevronRight size={14} className={done ? "text-emerald-300" : "text-surface-border"} />
             )}
           </React.Fragment>
         )
       })}
       {isFailed && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-500/10 text-rose-400 ml-2">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-btn bg-rose-50 text-rose-700 ml-2">
           {currentStatus === "failed" ? <XCircle size={14} /> : <AlertTriangle size={14} />}
-          <span className="text-xs font-medium">{currentStatus === "failed" ? "Failed" : "Review"}</span>
+          <span className="text-xs font-semibold tracking-wide uppercase">{currentStatus === "failed" ? "Failed" : "Review"}</span>
         </div>
       )}
     </div>
@@ -48,9 +48,9 @@ function StatusStepper({ currentStatus }) {
 
 function CostRow({ label, value, highlight }) {
   return (
-    <div className={`flex justify-between py-2.5 ${highlight ? "border-t border-surface-700 mt-2 pt-4" : ""}`}>
-      <span className={highlight ? "text-surface-200 font-semibold" : "text-surface-400"}>{label}</span>
-      <span className={highlight ? "text-2xl font-bold text-gradient" : "text-surface-200 font-medium"}>
+    <div className={`flex justify-between py-3 ${highlight ? "border-t border-surface-border mt-1 bg-surface-50 -mx-6 px-6 -mb-6 pb-6 pt-4 rounded-b-card" : ""}`}>
+      <span className={highlight ? "text-surface-text font-semibold" : "text-surface-muted"}>{label}</span>
+      <span className={highlight ? "text-xl font-bold text-primary" : "text-surface-text font-medium"}>
         ₹{typeof value === "number" ? value.toLocaleString("en-IN", { minimumFractionDigits: 2 }) : value}
       </span>
     </div>
@@ -81,12 +81,12 @@ function RFQDetail() {
     return () => clearInterval(interval)
   }, [rfqId])
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-primary-500 animate-spin" /></div>
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
   if (error) return (
-    <div className="glass-card p-8 text-center">
-      <XCircle className="w-12 h-12 text-rose-400 mx-auto mb-4" />
-      <p className="text-rose-400 text-lg">{error}</p>
-      <Link to="/" className="btn-secondary mt-4 inline-block">← Back to Dashboard</Link>
+    <div className="panel p-8 text-center max-w-lg mx-auto mt-12">
+      <XCircle className="w-10 h-10 text-rose-600 mx-auto mb-3" />
+      <p className="text-rose-800 font-medium">{error}</p>
+      <Link to="/" className="btn-secondary mt-5 inline-block">← Back to Dashboard</Link>
     </div>
   )
   if (!rfq) return null
@@ -94,7 +94,6 @@ function RFQDetail() {
   const result = rfq.result || {}
   const pricing = result.pricing || {}
   const gst = result.gst || {}
-  const quote = result.quote || {}
   const timings = result.agent_timings || {}
   const ner = result.ner || {}
 
@@ -112,14 +111,14 @@ function RFQDetail() {
   ]
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in max-w-[1400px] mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link to="/" className="p-2 rounded-lg hover:bg-surface-800 transition-colors"><ArrowLeft size={20} className="text-surface-400" /></Link>
+          <Link to="/" className="p-2 border border-surface-border rounded-btn hover:bg-surface-panel transition-colors text-surface-muted"><ArrowLeft size={16} /></Link>
           <div>
-            <h1 className="text-2xl font-bold">RFQ Detail</h1>
-            <p className="text-sm font-mono text-surface-500 mt-0.5">{rfqId}</p>
+            <h1 className="text-xl font-semibold text-surface-text">RFQ Detail</h1>
+            <p className="text-sm font-mono text-surface-muted mt-0.5">{rfqId}</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -128,157 +127,167 @@ function RFQDetail() {
               <Download size={16} /> Download PDF
             </a>
           )}
-          {rfq.sender_contact && <button className="btn-accent flex items-center gap-2"><Send size={16} /> Send WhatsApp</button>}
+          {rfq.sender_contact && <button className="btn-secondary flex items-center gap-2"><Send size={16} /> Contact Supplier</button>}
         </div>
       </div>
 
       {/* Pipeline Stepper */}
-      <div className="glass-card p-4">
+      <div className="panel p-4">
         <StatusStepper currentStatus={rfq.status} />
       </div>
 
       {/* Error display */}
       {rfq.error && (
-        <div className="glass-card p-4 border-rose-500/30">
+        <div className="panel p-4 border-l-4 border-l-rose-500">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="text-rose-400 flex-shrink-0" size={20} />
-            <p className="text-rose-400 text-sm">{rfq.error}</p>
+            <AlertTriangle className="text-rose-600 flex-shrink-0" size={18} />
+            <p className="text-rose-800 text-sm font-medium">{rfq.error}</p>
           </div>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-surface-900/50 rounded-xl border border-surface-800/50">
-        {tabs.map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all duration-300
-              ${activeTab === tab.key ? "bg-primary-600/20 text-primary-400 border border-primary-500/30" : "text-surface-500 hover:text-surface-300"}`}>
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      <div className="animate-fade-in">
-        {activeTab === "overview" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="glass-card p-6 space-y-4">
-              <h3 className="text-lg font-semibold mb-4">RFQ Information</h3>
-              {[
-                ["Status", <span className={`badge badge-${rfq.status}`}>{rfq.status}</span>],
-                ["Source", rfq.source_channel || "api"],
-                ["File Type", rfq.file_type || "text"],
-                ["Sender", rfq.sender_contact || "N/A"],
-                ["Created", rfq.created_at ? new Date(rfq.created_at).toLocaleString() : "—"],
-                ["Updated", rfq.updated_at ? new Date(rfq.updated_at).toLocaleString() : "—"],
-                ["Pipeline Time", result.total_pipeline_ms ? `${result.total_pipeline_ms}ms` : "—"],
-              ].map(([k, v], i) => (
-                <div key={i} className="flex justify-between py-1.5 border-b border-surface-800/30 last:border-0">
-                  <span className="text-surface-500 text-sm">{k}</span>
-                  <span className="text-surface-200 text-sm">{v}</span>
-                </div>
-              ))}
-            </div>
-            {pricing.total_subtotal > 0 && (
-              <div className="glass-card p-6">
-                <h3 className="text-lg font-semibold mb-4">Quote Summary</h3>
-                <CostRow label="Material Cost" value={materialCost} />
-                <CostRow label="Logistics & Loading" value={logisticsCost} />
-                <CostRow label={`Margin (${pricing.margin_percent || 5}%)`} value={marginTotal} />
-                <CostRow label={`GST (${gst.gst_rate_pct || 18}% ${gst.tax_type || ""})`} value={gstAmount} />
-                <CostRow label="Grand Total" value={grandTotal} highlight />
-              </div>
-            )}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left Column - Tabs & Content */}
+        <div className="flex-1 space-y-6">
+          {/* Tabs */}
+          <div className="flex gap-1 p-1 bg-surface-panel rounded-lg border border-surface-border">
+            {tabs.map(tab => (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-150
+                  ${activeTab === tab.key ? "bg-surface shadow-subtle text-primary border border-surface-border" : "text-surface-muted hover:text-surface-text hover:bg-surface/50 border border-transparent"}`}>
+                {tab.label}
+              </button>
+            ))}
           </div>
-        )}
 
-        {activeTab === "extraction" && (
-          <div className="glass-card p-6">
-            <h3 className="text-lg font-semibold mb-4">Extracted Entities</h3>
-            {ner.line_items?.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-surface-800">
-                    {["Material", "Grade", "IS Code", "Dimensions", "Quantity", "Pincode"].map(h => (
-                      <th key={h} className="text-left px-4 py-2 text-xs text-surface-500 uppercase">{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>
-                    {ner.line_items.map((item, i) => (
-                      <tr key={i} className="border-b border-surface-800/30">
-                        <td className="px-4 py-3 text-surface-200">{item.material_type}</td>
-                        <td className="px-4 py-3 text-surface-200">{item.grade}</td>
-                        <td className="px-4 py-3 text-surface-400">{item.is_code || "—"}</td>
-                        <td className="px-4 py-3 text-surface-400 font-mono text-xs">
-                          {item.dimensions ? Object.entries(item.dimensions).map(([k,v]) => `${k}:${v}`).join(", ") : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-surface-200">{item.quantity ? `${item.quantity.value} ${item.quantity.unit}` : "—"}</td>
-                        <td className="px-4 py-3 text-surface-400">{item.destination_pincode || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : <p className="text-surface-500">No entities extracted yet.</p>}
-            {ner.overall_confidence > 0 && (
-              <div className="mt-4 pt-4 border-t border-surface-800/50 flex items-center gap-4">
-                <span className="text-sm text-surface-500">Confidence:</span>
-                <div className="flex-1 h-2 bg-surface-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all duration-1000"
-                    style={{ width: `${(ner.overall_confidence || 0) * 100}%` }} />
-                </div>
-                <span className="text-sm font-mono text-primary-400">{((ner.overall_confidence || 0) * 100).toFixed(0)}%</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "costs" && (
-          <div className="space-y-4">
-            {pricing.item_costs?.map((cost, i) => (
-              <div key={i} className="glass-card p-5">
-                <h4 className="text-sm font-semibold text-surface-400 mb-3">Item {i + 1}</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    ["Material", cost.material_cost],
-                    ["Logistics", cost.logistics_cost],
-                    ["Margin", cost.margin_amount],
-                    ["Subtotal", cost.subtotal],
-                  ].map(([l, v]) => (
-                    <div key={l}>
-                      <p className="text-xs text-surface-500">{l}</p>
-                      <p className="text-lg font-semibold text-surface-200">₹{(v || 0).toLocaleString("en-IN")}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )) || <p className="text-surface-500 glass-card p-6">Cost data not yet available.</p>}
-          </div>
-        )}
-
-        {activeTab === "agents" && (
-          <div className="glass-card p-6 space-y-4">
-            <h3 className="text-lg font-semibold mb-4">Agent Execution Timeline</h3>
-            {Object.keys(timings).length > 0 ? (
-              <div className="space-y-3">
-                {Object.entries(timings).map(([agent, ms], i) => (
-                  <div key={agent} className="flex items-center gap-4 animate-slide-up" style={{ animationDelay: `${i * 100}ms` }}>
-                    <div className="w-28 text-sm font-medium text-surface-300 capitalize">{agent}</div>
-                    <div className="flex-1 h-6 bg-surface-800 rounded-lg overflow-hidden relative">
-                      <div className="h-full bg-gradient-to-r from-primary-600 to-accent-500 rounded-lg transition-all duration-1000 flex items-center px-2"
-                        style={{ width: `${Math.min(100, (ms / Math.max(...Object.values(timings))) * 100)}%` }}>
-                        <span className="text-[10px] font-mono text-white/80">{ms}ms</span>
-                      </div>
-                    </div>
-                    <div className="w-16 text-right">
-                      <Timer size={12} className="inline text-surface-500" /> <span className="text-xs text-surface-400">{ms}ms</span>
-                    </div>
+          {/* Tab Content */}
+          <div className="animate-fade-in">
+            {activeTab === "overview" && (
+              <div className="panel p-6 space-y-4">
+                <h3 className="text-base font-semibold text-surface-text mb-4">Metadata</h3>
+                {[
+                  ["Status", <span className={`badge badge-${rfq.status}`}>{rfq.status}</span>],
+                  ["Source", rfq.source_channel || "api"],
+                  ["File Type", rfq.file_type || "text"],
+                  ["Sender", rfq.sender_contact || "N/A"],
+                  ["Created", rfq.created_at ? new Date(rfq.created_at).toLocaleString() : "—"],
+                  ["Updated", rfq.updated_at ? new Date(rfq.updated_at).toLocaleString() : "—"],
+                  ["Pipeline Time", result.total_pipeline_ms ? `${result.total_pipeline_ms}ms` : "—"],
+                ].map(([k, v], i) => (
+                  <div key={i} className="flex justify-between py-2 border-b border-surface-border last:border-0">
+                    <span className="text-surface-muted text-sm">{k}</span>
+                    <span className="text-surface-text text-sm font-medium capitalize">{v}</span>
                   </div>
                 ))}
               </div>
-            ) : <p className="text-surface-500">Agent logs not yet available.</p>}
+            )}
+
+            {activeTab === "extraction" && (
+              <div className="panel p-0 overflow-hidden">
+                <div className="p-5 border-b border-surface-border bg-surface-50 flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-surface-text">Line Items</h3>
+                  {ner.overall_confidence > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-surface-muted uppercase tracking-wider font-semibold">Confidence</span>
+                      <span className="text-sm font-mono text-emerald-600 font-semibold">{((ner.overall_confidence || 0) * 100).toFixed(0)}%</span>
+                    </div>
+                  )}
+                </div>
+                {ner.line_items?.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-surface-panel/50 border-b border-surface-border">
+                        <tr>
+                          {["Material", "Grade", "IS Code", "Dimensions", "Quantity", "Pincode"].map(h => (
+                            <th key={h} className="text-left px-5 py-3 text-xs text-surface-muted font-medium uppercase">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surface-border">
+                        {ner.line_items.map((item, i) => (
+                          <tr key={i} className="hover:bg-surface-panel/30 transition-colors h-12">
+                            <td className="px-5 text-surface-text font-medium">{item.material_type}</td>
+                            <td className="px-5 text-surface-muted">{item.grade}</td>
+                            <td className="px-5 text-surface-muted">{item.is_code || "—"}</td>
+                            <td className="px-5 text-surface-muted font-mono text-xs">
+                              {item.dimensions ? Object.entries(item.dimensions).map(([k,v]) => `${k}:${v}`).join(", ") : "—"}
+                            </td>
+                            <td className="px-5 text-surface-text font-medium">{item.quantity ? `${item.quantity.value} ${item.quantity.unit}` : "—"}</td>
+                            <td className="px-5 text-surface-muted">{item.destination_pincode || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <div className="p-8 text-center text-surface-muted">No entities extracted yet.</div>}
+              </div>
+            )}
+
+            {activeTab === "costs" && (
+              <div className="space-y-4">
+                {pricing.item_costs?.map((cost, i) => (
+                  <div key={i} className="card p-5">
+                    <h4 className="text-xs font-bold text-surface-muted uppercase tracking-wider mb-4 border-b border-surface-border pb-2">Line Item {i + 1}</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {[
+                        ["Material", cost.material_cost],
+                        ["Logistics", cost.logistics_cost],
+                        ["Margin", cost.margin_amount],
+                        ["Subtotal", cost.subtotal],
+                      ].map(([l, v]) => (
+                        <div key={l}>
+                          <p className="text-xs text-surface-muted mb-1">{l}</p>
+                          <p className="text-base font-semibold text-surface-text">₹{(v || 0).toLocaleString("en-IN")}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )) || <div className="panel p-8 text-center text-surface-muted">Cost data not yet available.</div>}
+              </div>
+            )}
+
+            {activeTab === "agents" && (
+              <div className="panel p-6 space-y-5">
+                <h3 className="text-base font-semibold text-surface-text border-b border-surface-border pb-3">Execution Timeline</h3>
+                {Object.keys(timings).length > 0 ? (
+                  <div className="space-y-4 pt-2">
+                    {Object.entries(timings).map(([agent, ms]) => (
+                      <div key={agent} className="flex items-center gap-4">
+                        <div className="w-28 text-xs font-semibold text-surface-muted uppercase tracking-wider">{agent}</div>
+                        <div className="flex-1 h-3 bg-surface-panel rounded-full overflow-hidden relative border border-surface-border">
+                          <div className="h-full bg-primary transition-all duration-500 rounded-full"
+                            style={{ width: `${Math.min(100, Math.max(1, (ms / Math.max(...Object.values(timings))) * 100))}%` }}>
+                          </div>
+                        </div>
+                        <div className="w-20 text-right font-mono text-sm text-surface-text">
+                          {ms}ms
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-surface-muted text-center py-4">Agent logs not yet available.</p>}
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Right Column - Sticky Quote Summary */}
+        <div className="w-full lg:w-80 flex-shrink-0">
+          <div className="sticky top-24 panel p-6">
+            <h3 className="text-base font-semibold text-surface-text mb-4 pb-3 border-b border-surface-border">Quote Summary</h3>
+            {pricing.total_subtotal > 0 ? (
+              <div className="space-y-1">
+                <CostRow label="Material Cost" value={materialCost} />
+                <CostRow label="Logistics" value={logisticsCost} />
+                <CostRow label={`Margin (${pricing.margin_percent || 5}%)`} value={marginTotal} />
+                <CostRow label={`GST (${gst.gst_rate_pct || 18}%)`} value={gstAmount} />
+                <CostRow label="Grand Total" value={grandTotal} highlight />
+              </div>
+            ) : (
+              <p className="text-surface-muted text-sm text-center py-4">Quote details pending.</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -114,23 +114,42 @@ If a field cannot be determined, set it to null and confidence to 0.
             retrieved_synonyms=synonyms
         )
 
+        # Call LLM
+        result = self.groq.call(
+            system_prompt=system_prompt,
+            user_prompt=ner_input.raw_text,
+            model="llama-3.3-70b-versatile",
+            temperature=0.1
+        )
+
+        # Parse JSON output
         try:
-            result = self.groq.call(
-                system_prompt=system_prompt,
-                user_prompt=ner_input.raw_text,
-                model="llama3-70b-8192",
-                temperature=0.1
-            )
-            entities = json.loads(result)
-            entities["rfq_id"] = ner_input.rfq_id
-            return NEROutput.model_validate(entities)
-        except Exception:
-            fallback = {
-                "rfq_id": ner_input.rfq_id,
+            # Strip markdown code blocks if the LLM wrapped the JSON
+            clean_result = result.strip()
+            if clean_result.startswith("```"):
+                clean_result = clean_result.strip("`")
+                if clean_result.startswith("json\n") or clean_result.startswith("json "):
+                    clean_result = clean_result[4:].strip()
+                elif clean_result.startswith("json"):
+                    clean_result = clean_result[4:].strip()
+            
+            entities = json.loads(clean_result)
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse NER JSON: {e}")
+            print(f"Raw LLM Output:\n{result}")
+            entities = {
                 "line_items": [],
                 "language": "en",
                 "is_sub_inquiry": False,
                 "price_inclusive_gst": False,
                 "overall_confidence": 0.0
             }
-            return NEROutput.model_validate(fallback)
+
+        return NEROutput(
+            rfq_id=ner_input.rfq_id,
+            line_items=entities.get("line_items") or [],
+            language=entities.get("language") or "en",
+            is_sub_inquiry=bool(entities.get("is_sub_inquiry")),
+            price_inclusive_gst=bool(entities.get("price_inclusive_gst")),
+            overall_confidence=float(entities.get("overall_confidence") or 0.0)
+        )

@@ -12,50 +12,50 @@ function NavLink({ to, icon: Icon, children }) {
   const active = location.pathname === to
   return (
     <Link to={to}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-btn transition-colors duration-150 group
         ${active
-          ? 'bg-primary-600/20 text-primary-400 border border-primary-500/30 shadow-neon'
-          : 'text-surface-400 hover:text-surface-100 hover:bg-surface-800/50'}`}>
-      <Icon size={20} className={`transition-transform duration-300 ${active ? 'text-primary-400' : 'group-hover:scale-110'}`} />
-      <span className="font-medium">{children}</span>
+          ? 'bg-primary/10 text-primary font-medium'
+          : 'text-surface-muted hover:text-surface-text hover:bg-surface-panel'}`}>
+      <Icon size={18} className={active ? 'text-primary' : 'text-surface-subtle group-hover:text-surface-muted'} />
+      <span className="text-sm">{children}</span>
     </Link>
   )
 }
 
 function Sidebar() {
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-surface-950/80 backdrop-blur-xl border-r border-surface-800/50 flex flex-col z-40">
+    <aside className="fixed left-0 top-0 h-full w-64 bg-surface border-r border-surface-border flex flex-col z-40">
       {/* Logo */}
-      <div className="p-6 border-b border-surface-800/50">
+      <div className="p-5 border-b border-surface-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shadow-neon">
-            <Zap size={22} className="text-white" />
+          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
+            <Zap size={16} className="text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gradient">SRIP</h1>
-            <p className="text-[10px] text-surface-500 uppercase tracking-widest">Smart RFQ Intelligence</p>
+            <h1 className="text-base font-bold text-primary">SRIP</h1>
+            <p className="text-[10px] text-surface-subtle uppercase tracking-widest font-medium">Intelligence</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        <p className="text-[10px] text-surface-600 uppercase tracking-widest font-semibold mb-3 px-4">Main Menu</p>
+      <nav className="flex-1 p-4 space-y-1">
+        <p className="text-[10px] text-surface-subtle uppercase tracking-wider font-semibold mb-2 px-3">Workspace</p>
         <NavLink to="/" icon={LayoutDashboard}>Dashboard</NavLink>
         <NavLink to="/upload" icon={Upload}>Upload RFQ</NavLink>
         <NavLink to="/chat" icon={MessageSquare}>Chat Simulator</NavLink>
 
-        <p className="text-[10px] text-surface-600 uppercase tracking-widest font-semibold mt-8 mb-3 px-4">System</p>
+        <p className="text-[10px] text-surface-subtle uppercase tracking-wider font-semibold mt-6 mb-2 px-3">System</p>
         <NavLink to="/health" icon={Activity}>Health</NavLink>
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-surface-800/50">
-        <div className="glass-card-sm p-3 text-center">
-          <p className="text-xs text-surface-500">v2.0.0 • Agentic RAG</p>
-          <div className="flex items-center justify-center gap-1.5 mt-1">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-            <span className="text-[10px] text-emerald-400">System Online</span>
+      <div className="p-4 border-t border-surface-border">
+        <div className="panel p-3 text-center">
+          <p className="text-xs text-surface-muted font-medium">v2.0.0 • Agentic RAG</p>
+          <div className="flex items-center justify-center gap-1.5 mt-1.5">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+            <span className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">System Online</span>
           </div>
         </div>
       </div>
@@ -66,27 +66,27 @@ function Sidebar() {
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-surface-950">
+      <div className="min-h-screen bg-pageBg">
         <Sidebar />
-        <main className="ml-64 min-h-screen">
+        <main className="ml-64 min-h-screen flex flex-col">
           {/* Top bar */}
-          <header className="sticky top-0 z-30 bg-surface-950/80 backdrop-blur-xl border-b border-surface-800/30 px-8 py-4">
+          <header className="sticky top-0 z-30 bg-surface border-b border-surface-border px-8 py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-surface-100">Smart RFQ Intelligence Pipeline</h2>
-                <p className="text-sm text-surface-500">Indian Steel MSME Quotation Automation</p>
+                <h2 className="text-lg font-semibold text-surface-text">Smart RFQ Intelligence Pipeline</h2>
+                <p className="text-sm text-surface-muted mt-0.5">Indian Steel MSME Quotation Automation</p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="badge badge-quoted">
-                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                  Live
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                  Live Connection
                 </div>
               </div>
             </div>
           </header>
 
           {/* Content */}
-          <div className="p-8">
+          <div className="p-8 flex-1 overflow-auto">
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/rfq/:rfqId" element={<RFQDetail />} />
@@ -107,16 +107,16 @@ function HealthPage() {
     fetch('http://localhost:8000/health').then(r => r.json()).then(setHealth).catch(() => setHealth({ status: 'unreachable' }))
   }, [])
   return (
-    <div className="animate-fade-in">
-      <h1 className="text-2xl font-bold mb-6">System Health</h1>
-      <div className="glass-card p-6 max-w-lg">
+    <div className="animate-fade-in max-w-2xl">
+      <h1 className="text-2xl font-bold mb-6 text-primary">System Health</h1>
+      <div className="panel p-6">
         {health ? (
-          <div className="space-y-3">
-            <div className="flex justify-between"><span className="text-surface-400">Status</span><span className={health.status === 'healthy' ? 'text-emerald-400' : 'text-rose-400'}>{health.status}</span></div>
-            <div className="flex justify-between"><span className="text-surface-400">Version</span><span>{health.version || '—'}</span></div>
-            <div className="flex justify-between"><span className="text-surface-400">Mock Mode</span><span>{health.mock_mode || '—'}</span></div>
+          <div className="space-y-4">
+            <div className="flex justify-between py-2 border-b border-surface-border last:border-0"><span className="text-surface-muted font-medium">Status</span><span className={health.status === 'healthy' ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{health.status}</span></div>
+            <div className="flex justify-between py-2 border-b border-surface-border last:border-0"><span className="text-surface-muted font-medium">Version</span><span className="font-mono text-sm text-surface-text">{health.version || '—'}</span></div>
+            <div className="flex justify-between py-2 border-b border-surface-border last:border-0"><span className="text-surface-muted font-medium">Mock Mode</span><span className="font-mono text-sm text-surface-text">{health.mock_mode || '—'}</span></div>
           </div>
-        ) : <p className="text-surface-500">Checking...</p>}
+        ) : <p className="text-surface-subtle">Checking...</p>}
       </div>
     </div>
   )
