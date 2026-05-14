@@ -1,4 +1,4 @@
-"""Groq Client with key rotation and mock support."""
+"""Groq Client with key rotation and real API calls."""
 import asyncio
 import json
 import logging
@@ -26,7 +26,7 @@ class GroqKeyRotator:
 
 
 class GroqClient:
-    """Groq API client with key rotation, sync/async support, and mock mode."""
+    """Groq API client with key rotation and sync/async support."""
 
     def __init__(self):
         # Load up to 5 Groq API keys from environment
@@ -37,14 +37,11 @@ class GroqClient:
                 self.keys.append(key)
 
         if not self.keys:
-            print("⚠️  No Groq API keys found. Using mock-only mode.")
+            raise RuntimeError("Groq API keys not configured. Set GROQ_API_KEY_1..5.")
 
         self.key_rotator = GroqKeyRotator(self.keys) if self.keys else None
         self.base_url = "https://api.groq.com/openai/v1"
         self.logger = logging.getLogger("srip.groq")
-
-    def _use_mock(self) -> bool:
-        return os.getenv("MOCK_GROQ", "true").lower() == "true"
 
     def _key_candidates(self) -> List[str]:
         if not self.keys:
@@ -71,12 +68,8 @@ class GroqClient:
              model: str = "llama-3.3-70b-versatile", temperature: float = 0.7,
              max_tokens: int = 4096) -> str:
         """Make a synchronous call to Groq API."""
-        # Check mock mode FIRST — before touching key_rotator
-        if self._use_mock():
-            return self._mock_call(system_prompt, user_prompt, model)
-
         if not self.keys:
-            raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
+            raise RuntimeError("Groq API keys not configured.")
 
         import requests
 
@@ -126,12 +119,8 @@ class GroqClient:
                           model: str = "llama-3.3-70b-versatile", temperature: float = 0.7,
                           max_tokens: int = 4096) -> str:
         """Make an async call to Groq API."""
-        # Check mock mode FIRST
-        if self._use_mock():
-            return self._mock_call(system_prompt, user_prompt, model)
-
         if not self.keys:
-            raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
+            raise RuntimeError("Groq API keys not configured.")
 
         import aiohttp
 
@@ -175,12 +164,8 @@ class GroqClient:
     def call_vision(self, system_prompt: str, image_data: str,
                     model: str = "llama-3.2-11b-vision-preview") -> Dict[str, Any]:
         """Make a vision call to Groq API for image understanding."""
-        # Check mock mode FIRST
-        if self._use_mock():
-            return self._mock_vision_call(system_prompt, image_data)
-
         if not self.keys:
-            raise RuntimeError("Groq API keys not configured and MOCK_GROQ is false.")
+            raise RuntimeError("Groq API keys not configured.")
 
         import requests
 
@@ -245,66 +230,3 @@ class GroqClient:
             "language_detected": "en"
         }
 
-    # ==================== Mock Responses ====================
-
-    def _mock_call(self, system_prompt: str, user_prompt: str, model: str) -> str:
-        """Return a mock response for testing."""
-        lower_prompt = user_prompt.lower()
-        lower_system = system_prompt.lower()
-
-        # Price extraction mock
-        if "price" in lower_prompt and ("mcx" in lower_prompt or "steel" in lower_prompt):
-            return '{"price_per_ton": 58000, "source": "mock", "as_of": "today"}'
-
-        # OCR extraction mock
-        if "ocr" in lower_system or ("extract" in lower_prompt and "image" in lower_prompt):
-            return '{"extracted_text": "12mm Sariya Fe500 10 ton Surat", "confidence": 0.9, "language_detected": "mixed"}'
-
-        # NER / entity extraction mock
-        if "metallurgist" in lower_system or "extract" in lower_system or "ner" in lower_system:
-            mock_entities = {
-                "line_items": [
-                    {
-                        "item_id": 1,
-                        "material_type": "TMT_Bar",
-                        "is_code": "IS 1786:2008",
-                        "grade": "Fe 500",
-                        "shape": "Round",
-                        "dimensions": {"diameter_mm": 12, "length_ft": 40},
-                        "quantity": {"value": 10, "unit": "tons"},
-                        "destination_pincode": "395006",
-                        "destination_raw": "Surat",
-                        "urgency": None,
-                        "confidence_scores": {"material_type": 0.95, "grade": 0.92, "quantity": 0.90}
-                    }
-                ],
-                "language": "en",
-                "is_sub_inquiry": False,
-                "price_inclusive_gst": False,
-                "overall_confidence": 0.92
-            }
-            return json.dumps(mock_entities)
-
-        # WhatsApp summary mock
-        if "whatsapp" in lower_system or "whatsapp" in lower_prompt:
-            return (
-                "Dear Sir/Madam,\n\n"
-                "Thank you for your enquiry. Please find attached our quotation.\n\n"
-                "Quote Summary:\n"
-                "- Material: TMT Bar Fe500 12mm\n"
-                "- Quantity: 10 MT\n"
-                "- Total: ₹6,84,400\n\n"
-                "Quote PDF attached. Valid for 24 hours.\n\n"
-                "Regards,\nDemo Steel Works"
-            )
-
-        # Default mock
-        return '{"response": "Mock response from Groq"}'
-
-    def _mock_vision_call(self, system_prompt: str, image_data: str) -> Dict[str, Any]:
-        """Return a mock vision response for testing."""
-        return {
-            "extracted_text": "12mm Sariya Fe500 10 ton delivery to Sachin GIDC, Surat 394230",
-            "confidence": 0.9,
-            "language_detected": "mixed"
-        }

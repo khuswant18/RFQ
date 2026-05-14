@@ -4,7 +4,7 @@ import os
 import threading
 import uuid
 
-from app.core.rfq_store import create_rfq
+from app.core import prisma_db
 from app.tasks.pipeline_tasks import process_rfq_pipeline
 
 router = APIRouter(tags=["ingestion"])
@@ -30,20 +30,13 @@ async def upload_rfq(file: UploadFile = File(...)):
             content = await file.read()
             f.write(content)
 
-        # Try to create RFQ record in DB; if DB not available, proceed without failing the request
-        db_ok = True
-        try:
-            create_rfq(
-                rfq_id=rfq_id,
-                source_channel="api",
-                file_type=file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else None,
-                file_path=file_path,
-                sender_contact=None,
-            )
-        except Exception as exc:
-            # Log and continue — background pipeline will handle failures and update DB when available
-            print(f"⚠️  Failed to create RFQ record: {exc}")
-            db_ok = False
+        await prisma_db.create_rfq(
+            rfq_id=rfq_id,
+            source_channel="api",
+            file_type=file.filename.rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else None,
+            file_path=file_path,
+            sender_contact=None,
+        )
 
         if hasattr(process_rfq_pipeline, "delay"):
             process_rfq_pipeline.delay(rfq_id, file_path=file_path, source_channel="api")
@@ -60,7 +53,6 @@ async def upload_rfq(file: UploadFile = File(...)):
             "rfq_id": rfq_id,
             "filename": file.filename,
             "status": "received",
-            "db_record_created": db_ok,
             "message": "RFQ uploaded successfully. Processing will begin shortly."
         }
         return resp
@@ -69,11 +61,14 @@ async def upload_rfq(file: UploadFile = File(...)):
         error_detail = f"{str(exc)}"
         traceback.print_exc()
         print(f"❌ Upload endpoint error: {error_detail}")
-        return {
-            "status": "error",
-            "error": error_detail,
-            "message": "File upload failed. Check server logs for details."
-        }
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "error",
+                "error": error_detail,
+                "message": "File upload failed. Check server logs for details."
+            }
+        )
 
 
 @router.post("/ingest/text")
@@ -83,7 +78,7 @@ async def ingest_text(text: str, sender_contact: Optional[str] = None):
     """
     rfq_id = str(uuid.uuid4())
 
-    create_rfq(
+    await prisma_db.create_rfq(
         rfq_id=rfq_id,
         source_channel="api",
         file_type="text",

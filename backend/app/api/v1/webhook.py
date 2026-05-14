@@ -7,7 +7,7 @@ import traceback
 import httpx
 from twilio.request_validator import RequestValidator
 
-from app.core.rfq_store import create_rfq, update_rfq
+from app.core import prisma_db
 from app.tasks.pipeline_tasks import process_rfq_pipeline
 
 router = APIRouter(tags=["webhooks"])
@@ -69,7 +69,7 @@ async def whatsapp_webhook(request: Request):
     if num_media > 0 and media_url:
         file_type = "image"
 
-    create_rfq(
+    await prisma_db.create_rfq(
         rfq_id=rfq_id,
         source_channel="whatsapp",
         file_type=file_type,
@@ -97,9 +97,9 @@ async def whatsapp_webhook(request: Request):
                 with open(file_path, "wb") as f:
                     f.write(response.content)
             file_type = ext.lstrip(".")
-            update_rfq(rfq_id, file_type=file_type, file_path=file_path)
+            await prisma_db.update_rfq(rfq_id, file_type=file_type, file_path=file_path)
         except Exception as e:
-            update_rfq(rfq_id, status="failed", error=f"Media download failed: {e}")
+            await prisma_db.update_rfq(rfq_id, status="failed", error=f"Media download failed: {e}")
             return _twiml_response("Failed to download media.")
 
     # Trigger pipeline (async)
@@ -126,7 +126,7 @@ async def whatsapp_webhook(request: Request):
     except Exception as e:
         print(f"Error triggering pipeline for WhatsApp: {e}")
         traceback.print_exc()
-        update_rfq(rfq_id, status="failed", error=str(e))
+        await prisma_db.update_rfq(rfq_id, status="failed", error=str(e))
         return _twiml_response("Pipeline trigger failed.")
 
     return _twiml_response("RFQ received! Processing your quote...")

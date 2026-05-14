@@ -2,35 +2,47 @@
     {
         "id": "wf_1",
         "material": "TMT_Bar",
+        "type": "tmt_bar",
         "formula": "D² / 162.28 (kg/m)",
+        "divisor": 162.28,
+        "standard_length_ft": 40,
         "description": "Weight of TMT bar per meter length. D is diameter in mm. This is the BIS standard formula for calculating the weight of steel reinforcement bars. Derived from volume of cylinder: π/4 × D² × L × density, where density of steel = 7850 kg/m³. For 1m length: (π/4 × D² × 1000 × 7.85) / 1000 = D² / 162.28 kg/m",
         "example": "For 12mm diameter bar: 12² / 162.28 = 0.888 kg/m"
     },
     {
         "id": "wf_2",
         "material": "Structural_Plate",
+        "type": "plate",
         "formula": "L × W × T × 7.85 / 1000000 (kg)",
+        "density_g_cm3": 7.85,
         "description": "Weight of steel plate. L, W, T are length, width and thickness in mm. Density of steel = 7.85 g/cm³ = 7850 kg/m³. Convert dimensions to cm, calculate volume, then multiply by density.",
         "example": "For 6m x 1.25m x 10mm plate: (6000 x 1250 x 10 x 7.85) / 1000000 = 471.88 kg"
     },
     {
         "id": "wf_3",
         "material": "Angle",
+        "type": "angle",
         "formula": "(A + B - T) × T × 0.00785 (kg/m)",
+        "density_factor": 0.00785,
         "description": "Weight of angle section per meter. A and B are leg lengths in mm, T is thickness in mm. This simplified formula approximates the cross-sectional area of the angle section.",
         "example": "For ISA 50x50x5 angle: (50 + 50 - 5) × 5 × 0.00785 = 3.72 kg/m"
     },
     {
         "id": "wf_4",
         "material": "Channel",
+        "type": "channel",
         "formula": "Varies by section size",
+        "requires_section_weight": true,
         "description": "Weight of steel channel section varies by section size and standard (ISMC, ISMC etc.). Refer to IS Handbook Table 1 for exact weights per meter.",
         "example": "ISMC 100: 9.56 kg/m, ISMC 125: 11.97 kg/m"
     },
     {
         "id": "wf_5",
         "material": "Flat_Bar",
+        "type": "flat_bar",
         "formula": "W × T × 7.85 / 1000 (kg/m)",
+        "density_g_cm3": 7.85,
+        "divisor": 1000,
         "description": "Weight of flat bar per meter. W is width in mm and T is thickness in mm. Converts dimensions to cm, calculates cross-sectional area, multiplies by density of steel.",
         "example": "For 50mm x 6mm flat bar: 50 × 6 × 7.85 / 1000 = 2.36 kg/m"
     }

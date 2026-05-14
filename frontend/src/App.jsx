@@ -1,10 +1,12 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Upload, FileText, Activity, Settings, Zap } from 'lucide-react'
+import { LayoutDashboard, Upload, Activity, Zap, MessageSquareText } from 'lucide-react'
 import Dashboard from './pages/Dashboard.jsx'
 import RFQDetail from './pages/RFQDetail.jsx'
 import UploadPage from './pages/Upload.jsx'
+import ChatUpload from './pages/ChatUpload.jsx'
 import './index.css'
+import { API_ROOT } from './lib/apiBase'
 
 function NavLink({ to, icon: Icon, children }) {
   const location = useLocation()
@@ -42,6 +44,7 @@ function Sidebar() {
         <p className="text-[10px] text-surface-subtle uppercase tracking-wider font-semibold mb-2 px-3">Workspace</p>
         <NavLink to="/" icon={LayoutDashboard}>Dashboard</NavLink>
         <NavLink to="/upload" icon={Upload}>Upload RFQ</NavLink>
+        <NavLink to="/chat" icon={MessageSquareText}>RFQ Chat</NavLink>
 
         <p className="text-[10px] text-surface-subtle uppercase tracking-wider font-semibold mt-6 mb-2 px-3">System</p>
         <NavLink to="/health" icon={Activity}>Health</NavLink>
@@ -89,6 +92,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/rfq/:rfqId" element={<RFQDetail />} />
               <Route path="/upload" element={<UploadPage />} />
+              <Route path="/chat" element={<ChatUpload />} />
               <Route path="/health" element={<HealthPage />} />
             </Routes>
           </div>
@@ -101,7 +105,7 @@ function App() {
 function HealthPage() {
   const [health, setHealth] = React.useState(null)
   React.useEffect(() => {
-    fetch('https://rfq-dtvm.onrender.com/health').then(r => r.json()).then(setHealth).catch(() => setHealth({ status: 'unreachable' }))
+    fetch(`${API_ROOT}/health`).then(r => r.json()).then(setHealth).catch(() => setHealth({ status: 'unreachable' }))
   }, [])
   return (
     <div className="animate-fade-in max-w-2xl">
@@ -111,7 +115,6 @@ function HealthPage() {
           <div className="space-y-4">
             <div className="flex justify-between py-2 border-b border-surface-border last:border-0"><span className="text-surface-muted font-medium">Status</span><span className={health.status === 'healthy' ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{health.status}</span></div>
             <div className="flex justify-between py-2 border-b border-surface-border last:border-0"><span className="text-surface-muted font-medium">Version</span><span className="font-mono text-sm text-surface-text">{health.version || '—'}</span></div>
-            <div className="flex justify-between py-2 border-b border-surface-border last:border-0"><span className="text-surface-muted font-medium">Mock Mode</span><span className="font-mono text-sm text-surface-text">{health.mock_mode || '—'}</span></div>
           </div>
         ) : <p className="text-surface-subtle">Checking...</p>}
       </div>

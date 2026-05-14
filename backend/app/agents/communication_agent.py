@@ -26,8 +26,8 @@ class CommunicationAgent:
 
     def send_whatsapp(self, to: str, text: str, media_url: Optional[str] = None) -> bool:
         if not self.twilio_client:
-            print(f"Twilio not configured. Mock sending WhatsApp to {to}.")
-            return True
+            print("Twilio not configured. Cannot send WhatsApp message.")
+            return False
         try:
             msg_kwargs = {
                 "from_": os.getenv("TWILIO_WHATSAPP_NUMBER"),
@@ -44,12 +44,12 @@ class CommunicationAgent:
 
     def send_email(self, to: str, subject: str, body: str,
                    attachment: Optional[str] = None) -> bool:
-        print(f"Mock sending email to {to}: {subject}")
-        return True
+        print("Email service not configured. Cannot send email.")
+        return False
 
     def create_task(self, title: str, rfq_id: str, priority: str = "normal") -> bool:
-        print(f"Mock creating task: {title} (RFQ: {rfq_id}, priority: {priority})")
-        return True
+        print("Task system not configured. Skipping task creation.")
+        return False
 
     def run(self, rfq_id: str, pdf_path: str, channel: str,
             recipient: str, summary: str) -> CommunicationResult:

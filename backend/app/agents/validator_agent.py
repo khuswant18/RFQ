@@ -1,5 +1,9 @@
 """Validator Agent - Cross-references extracted entities against BIS standards."""
-from typing import List, Optional
+import json
+import os
+from typing import List, Dict, Any
+
+from app.core.rag.chroma_client import ChromaClient
 
 from app.models.rfq import LineItem, ValidationResult
 
@@ -10,44 +14,42 @@ class ValidatorAgent:
     Flags impossible combinations and maps to canonical values.
     """
 
-    VALID_GRADES = {
-        "TMT_Bar": {
-            "grades": ["Fe 415", "Fe 500", "Fe 500D", "Fe 550", "Fe 600"],
-            "is_code": "IS 1786:2008",
-            "diameter_range_mm": (6, 40),
-            "standard_lengths_ft": [20, 40]
-        },
-        "Structural_Plate": {
-            "grades": ["E250", "E350", "E410"],
-            "is_code": "IS 2062:2011",
-            "thickness_range_mm": (5, 100),
-            "width_range_mm": (600, 3000)
-        },
-        "Angle": {
-            "grades": ["E250", "E350"],
-            "is_code": "IS 2062:2011",
-            "size_range_mm": (20, 200)
-        },
-        "Channel": {
-            "grades": ["E250", "E350"],
-            "is_code": "IS 2062:2011"
-        },
-        "Flat_Bar": {
-            "grades": ["E250", "E350"],
-            "is_code": "IS 2062:2011"
-        }
-    }
+    def __init__(self):
+        rules_path = os.getenv("IS_CODES_PATH", "app/knowledge/is_codes.json")
+        if not os.path.exists(rules_path):
+            raise RuntimeError(f"IS codes rules not found: {rules_path}")
 
-    IMPOSSIBLE_COMBINATIONS = [
-        ("TMT_Bar", "E250"),
-        ("TMT_Bar", "E350"),
-        ("Structural_Plate", "Fe 500"),
-        ("Structural_Plate", "Fe 550"),
-    ]
+        with open(rules_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-    ALL_VALID_GRADES = set()
-    for material, data in VALID_GRADES.items():
-        ALL_VALID_GRADES.update(data["grades"])
+        self.is_code_rules: Dict[str, Dict[str, Any]] = {}
+        for rule in data.get("is_codes", []):
+            is_code = rule.get("is_code")
+            if is_code:
+                self.is_code_rules[is_code] = rule
+
+        self.material_is_code: Dict[str, str] = {}
+        for rule in self.is_code_rules.values():
+            for material in rule.get("materials", []) or []:
+                self.material_is_code[material] = rule.get("is_code")
+
+        self.all_valid_grades = set()
+        for rule in self.is_code_rules.values():
+            self.all_valid_grades.update(rule.get("grades", []))
+
+        self.chroma = ChromaClient()
+
+    def _external_context(self, query: str) -> str:
+        try:
+            results = self.chroma.query(
+                collection="external_rag_files",
+                query_texts=[query],
+                n_results=3
+            )
+            return "\n".join([doc for doc in results.get("documents", [[]])[0]])
+        except Exception as exc:
+            print(f"ChromaDB external_rag_files query failed: {exc}")
+            return ""
 
     def validate_line_item(self, item: LineItem) -> ValidationResult:
         """Validate a single line item."""
@@ -55,31 +57,64 @@ class ValidatorAgent:
         warnings = []
 
         # 1. Grade exists?
-        if item.grade not in self.ALL_VALID_GRADES:
+        if item.grade not in self.all_valid_grades:
             errors.append(f"Unknown grade: {item.grade}")
+            ext = self._external_context(f"grade {item.grade} material {item.material_type}")
+            if ext:
+                warnings.append(f"External RAG context: {ext}")
 
-        # 2. Grade + Material combo valid?
-        if (item.material_type, item.grade) in self.IMPOSSIBLE_COMBINATIONS:
-            errors.append(f"Impossible: {item.material_type} cannot be {item.grade}")
-
-        # 3. Auto-assign IS code
+        # 2. Auto-assign IS code
         if not item.is_code:
-            item.is_code = self.VALID_GRADES.get(item.material_type, {}).get("is_code", "")
+            item.is_code = self.material_is_code.get(item.material_type, "")
             if item.is_code:
                 warnings.append("IS code auto-assigned")
 
+        if not item.is_code:
+            errors.append("IS code could not be resolved from material type")
+            ext = self._external_context(f"material {item.material_type} is code")
+            if ext:
+                warnings.append(f"External RAG context: {ext}")
+            return ValidationResult(
+                item=item,
+                status="invalid",
+                errors=errors,
+                warnings=warnings
+            )
+
+        rule = self.is_code_rules.get(item.is_code)
+        if not rule:
+            errors.append(f"No rules found for IS code: {item.is_code}")
+            ext = self._external_context(f"is code {item.is_code} grades")
+            if ext:
+                warnings.append(f"External RAG context: {ext}")
+            return ValidationResult(
+                item=item,
+                status="invalid",
+                errors=errors,
+                warnings=warnings
+            )
+
+        # 3. Grade + Material combo valid?
+        if item.grade not in rule.get("grades", []):
+            errors.append(f"Grade {item.grade} not valid for {item.is_code}")
+            ext = self._external_context(f"grade {item.grade} is code {item.is_code}")
+            if ext:
+                warnings.append(f"External RAG context: {ext}")
+
         # 4. Dimension sanity check
         if item.material_type == "TMT_Bar" and item.dimensions and item.dimensions.get("diameter_mm"):
-            valid_range = self.VALID_GRADES["TMT_Bar"]["diameter_range_mm"]
             diameter = item.dimensions["diameter_mm"]
-            if not (valid_range[0] <= diameter <= valid_range[1]):
+            diameter_range = rule.get("diameter_range_mm")
+            if diameter_range and not (diameter_range[0] <= diameter <= diameter_range[1]):
                 errors.append(f"Diameter {diameter}mm out of BIS range")
 
         # 5. Auto-assign standard length if missing
         if item.material_type == "TMT_Bar" and item.dimensions:
             if not item.dimensions.get("length_ft"):
-                item.dimensions["length_ft"] = 40
-                warnings.append("Standard 40ft length assumed for TMT")
+                standard_lengths = rule.get("standard_lengths_ft")
+                if standard_lengths:
+                    item.dimensions["length_ft"] = standard_lengths[-1]
+                    warnings.append("Standard length assumed from BIS rules")
 
         return ValidationResult(
             item=item,
