@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { ArrowLeft, Download, Send, Clock, CheckCircle2, XCircle, Loader2, FileText, Cpu, DollarSign, Receipt, ChevronRight, AlertTriangle, Timer } from "lucide-react"
-
-const API_BASE = import.meta.env.VITE_API_URL || "https://rfq-dtvm.onrender.com/api/v1"
+import { API_BASE } from "../lib/apiBase"
 
 const PIPELINE_STEPS = [
   { key: "received", label: "Received", icon: FileText },
@@ -96,6 +95,14 @@ function RFQDetail() {
   const gst = result.gst || {}
   const timings = result.agent_timings || {}
   const ner = result.ner || {}
+  const ocr = result.ocr || {}
+  const validation = result.validation || []
+
+  const validatorExternalContext = validation
+    .flatMap((item) => item.warnings || [])
+    .filter((warning) => typeof warning === "string" && warning.startsWith("External RAG context:"))
+    .map((warning) => warning.replace("External RAG context:", "").trim())
+    .join("\n\n")
 
   const materialCost = pricing.item_costs?.reduce((s, i) => s + (i.material_cost || 0), 0) || 0
   const logisticsCost = pricing.item_costs?.reduce((s, i) => s + (i.logistics_cost || 0), 0) || 0
@@ -108,6 +115,7 @@ function RFQDetail() {
     { key: "extraction", label: "Extracted Data" },
     { key: "costs", label: "Cost Breakdown" },
     { key: "agents", label: "Agent Logs" },
+    { key: "rag", label: "RAG Evidence" },
   ]
 
   return (
@@ -266,6 +274,26 @@ function RFQDetail() {
                     ))}
                   </div>
                 ) : <p className="text-surface-muted text-center py-4">Agent logs not yet available.</p>}
+              </div>
+            )}
+
+            {activeTab === "rag" && (
+              <div className="panel p-6 space-y-4">
+                <h3 className="text-base font-semibold text-surface-text border-b border-surface-border pb-3">External RAG Context</h3>
+                {[
+                  { label: "OCR", value: ocr.raw_text },
+                  { label: "NER", value: ner.external_context },
+                  { label: "Validator", value: validatorExternalContext },
+                  { label: "Pricing", value: pricing.external_context },
+                  { label: "GST", value: gst.external_context },
+                ].map((item) => (
+                  <div key={item.label} className="border border-surface-border rounded-lg p-4 bg-surface-50">
+                    <div className="text-xs font-semibold text-surface-muted uppercase tracking-wider mb-2">{item.label}</div>
+                    <div className="text-sm text-surface-text whitespace-pre-wrap">
+                      {item.value || "No external context captured."}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

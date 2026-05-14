@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 
-from app.api.v1 import ingestion, rfq, quotes, webhook, auth
+from app.api.v1 import ingestion, rfq, quotes, webhook, auth, chat
 from app.core.rag.seed_knowledge import seed_chroma
 
 
@@ -92,6 +92,7 @@ app.include_router(ingestion.router, prefix="/api/v1")
 app.include_router(rfq.router, prefix="/api/v1")
 app.include_router(quotes.router, prefix="/api/v1")
 app.include_router(webhook.router, prefix="/api/v1")
+app.include_router(chat.router, prefix="/api/v1")
 
 
 @app.get("/health")
@@ -109,7 +110,6 @@ async def health_check():
         "version": "2.0.0",
         "service": "srip-api",
         "database": db_status,
-        "mock_mode": os.getenv("MOCK_GROQ", "true"),
     }
 
 

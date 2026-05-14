@@ -158,6 +158,7 @@ class PricingResult(BaseModel):
     item_costs: List[CostBreakdown]
     total_subtotal: float
     margin_percent: float
+    external_context: Optional[str] = None
 
 
 # ==================== GST models ====================
@@ -171,6 +172,8 @@ class GSTResult(BaseModel):
     total_gst: float
     hsn_code: str
     gst_rate_pct: float
+    destination_state: Optional[str] = None
+    external_context: Optional[str] = None
 
 
 # ==================== Quote models ====================

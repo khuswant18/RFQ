@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, List, Any, Dict
 
-from app.core.rfq_store import get_rfq as store_get_rfq, list_rfqs, update_rfq
+from app.core import prisma_db
 
 router = APIRouter(tags=["rfq"])
 
@@ -11,7 +11,7 @@ router = APIRouter(tags=["rfq"])
 async def get_rfq_feed(limit: int = 50, status: Optional[str] = None):
     """Get live feed of RFQs for the dashboard."""
     try:
-        rfqs = list_rfqs(limit=limit, status=status)
+        rfqs = await prisma_db.list_rfqs(limit=limit, status=status)
         return {
             "rfqs": rfqs,
             "total": len(rfqs)
@@ -47,7 +47,7 @@ async def get_rfq_list(limit: int = 50, status: Optional[str] = None):
 async def get_rfq(rfq_id: str):
     """Get RFQ details by ID."""
     try:
-        record = store_get_rfq(rfq_id)
+        record = await prisma_db.get_rfq(rfq_id)
         if not record:
             raise HTTPException(status_code=404, detail="RFQ not found")
         return record
@@ -68,7 +68,7 @@ async def get_rfq(rfq_id: str):
 async def get_rfq_status(rfq_id: str):
     """Get the current processing status of an RFQ."""
     try:
-        record = store_get_rfq(rfq_id)
+        record = await prisma_db.get_rfq(rfq_id)
         if not record:
             raise HTTPException(status_code=404, detail="RFQ not found")
         return {

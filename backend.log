@@ -1,0 +1,43 @@
+==========================================
+Starting RFQ Backend Server
+==========================================
+
+✓ Activating virtual environment...
+✓ Starting FastAPI server on http://localhost:8000
+
+Backend is running...
+  • API: http://localhost:8000
+  • Docs: http://localhost:8000/docs
+  • Health: http://localhost:8000/health
+
+Press Ctrl+C to stop
+
+INFO:     Started server process [64076]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 48] error while attempting to bind on address ('0.0.0.0', 8000): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+⚠️  Prisma not available: The Client hasn't been generated yet, you must run `prisma generate` before you can use the client.
+See https://prisma-client-py.readthedocs.io/en/stable/reference/troubleshooting/#client-has-not-been-generated-yet
+⚠️  Using mock database - data will not persist!
+🚀 Starting SRIP API Server...
+✅ Mock database connected
+✅ Prisma database connected
+
+🌱 Seeding ChromaDB with steel domain knowledge...
+Seeding IS codes...
+  Seeded 2 IS codes
+Seeding material synonyms...
+  Seeded 8 material synonyms
+Seeding HSN/GST rules...
+  Seeded 7 HSN/GST rules
+Seeding weight formulas...
+  Seeded 5 weight formulas
+  Seeded 84 external RAG chunks
+✅ Knowledge seeding complete!
+
+✅ SRIP API Server ready.
+✅ Mock database disconnected
+✅ Prisma database disconnected
+👋 SRIP API Server shutting down.

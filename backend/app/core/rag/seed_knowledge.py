@@ -105,21 +105,55 @@ class KnowledgeSeeder:
             chroma.add_documents("weight_formulas", docs, ids, metadatas)
         print(f"  Seeded {len(docs)} weight formulas")
 
+    def seed_external_rag_files(self, chroma=None):
+        """Seed external RAG files into ChromaDB."""
+        rag_dir = os.getenv("RAG_FILES_PATH", "RAGFiles")
+        rag_path = pathlib.Path(rag_dir)
+        
+        # If relative path, resolve from project root
+        if not rag_path.is_absolute():
+            project_root = self.base_dir.parent.parent  # Go up from backend/app/core to project root
+            rag_path = project_root / rag_dir
+        
+        if not rag_path.exists():
+            raise RuntimeError(f"RAG files directory not found: {rag_path}")
+
+        docs = []
+        ids = []
+        metadatas = []
+
+        for file_path in rag_path.glob("**/*"):
+            if not file_path.is_file():
+                continue
+            if file_path.suffix.lower() not in (".txt", ".md"):
+                continue
+
+            content = file_path.read_text(encoding="utf-8", errors="ignore")
+            if not content.strip():
+                continue
+
+            chunks = [chunk.strip() for chunk in content.split("\n\n") if chunk.strip()]
+            for idx, chunk in enumerate(chunks):
+                docs.append(chunk)
+                ids.append(f"{file_path.stem}_{idx}")
+                metadatas.append({"source": str(file_path), "chunk": idx})
+
+        if chroma:
+            chroma.add_documents("external_rag_files", docs, ids, metadatas)
+        print(f"  Seeded {len(docs)} external RAG chunks")
+
     def seed_all(self):
         """Seed all knowledge."""
         print("\n🌱 Seeding ChromaDB with steel domain knowledge...")
 
-        try:
-            from app.core.rag.chroma_client import ChromaClient
-            chroma = ChromaClient()
-        except (ImportError, Exception) as e:
-            print(f"Warning: ChromaDB not available ({e}). Skipping seeding.")
-            chroma = None
+        from app.core.rag.chroma_client import ChromaClient
+        chroma = ChromaClient()
 
         self.seed_is_codes(chroma)
         self.seed_material_synonyms(chroma)
         self.seed_hsn_gst_rules(chroma)
         self.seed_weight_formulas(chroma)
+        self.seed_external_rag_files(chroma)
         print("✅ Knowledge seeding complete!\n")
 
 

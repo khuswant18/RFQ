@@ -2,20 +2,14 @@
 import os
 from typing import List, Dict, Any
 
-# ChromaDB is optional – graceful fallback when not installed
+# ChromaDB is required for RAG operations
 try:
-    from chromadb import Client, Settings
-    from chromadb.config import Settings as ChromaSettings
+    import chromadb
+    from chromadb import PersistentClient
     CHROMADB_AVAILABLE = True
 except ImportError:  # pragma: no cover
     CHROMADB_AVAILABLE = False
-    class Client:  # type: ignore[no-redef]
-        pass
-
-    class Settings:  # type: ignore[no-redef]
-        pass
-
-    ChromaSettings = None  # type: ignore[assignment]
+    PersistentClient = None  # type: ignore[assignment]
 
 
 class ChromaClient:
@@ -28,16 +22,12 @@ class ChromaClient:
         self.persist_directory = persist_directory
         os.makedirs(persist_directory, exist_ok=True)
 
-        self.client = Client(
-            ChromaSettings(  # type: ignore[call-arg]
-                persist_directory=persist_directory,
-                anonymized_telemetry=False
-            )
-        )
+        # Use PersistentClient for ChromaDB 1.5+
+        self.client = PersistentClient(path=persist_directory)
 
         # Create collections if they don't exist
         self.collections: Dict[str, Any] = {}
-        for collection_name in ["is_codes", "material_synonyms", "hsn_gst_rules", "weight_formulas", "agent_capabilities"]:
+        for collection_name in ["is_codes", "material_synonyms", "hsn_gst_rules", "weight_formulas", "agent_capabilities", "external_rag_files"]:
             self.collections[collection_name] = self.client.get_or_create_collection(collection_name)
 
     def add_documents(self, collection: str, documents: List[str],
@@ -56,7 +46,7 @@ class ChromaClient:
               n_results: int = 5) -> Dict[str, Any]:
         """Query a collection for similar documents."""
         if collection not in self.collections:
-            return {"documents": [[]], "distances": [[]], "metadatas": [[]]}
+            raise RuntimeError(f"Chroma collection not initialized: {collection}")
 
         results = self.collections[collection].query(
             query_texts=query_texts,

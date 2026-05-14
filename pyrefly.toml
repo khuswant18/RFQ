@@ -1,0 +1,5 @@
+# Pyrefly type checker configuration
+# "backend" is where the `app` package lives
+search-path = ["backend", ".venv/lib/python3.14/site-packages"]
+python-version = "3.14"
+python-platform = "Darwin"

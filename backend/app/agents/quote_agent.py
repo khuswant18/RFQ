@@ -46,13 +46,9 @@ Quote data: {quote_summary}
             from weasyprint import HTML as WeasyHTML
             WeasyHTML(string=html_content).write_pdf(pdf_path)
         except ImportError:
-            html_path = f"storage/quotes/QT-{rfq_id}.html"
-            with open(html_path, "w", encoding="utf-8") as f:
-                f.write(html_content)
-            self._create_placeholder_pdf(pdf_path, context)
+            raise RuntimeError("WeasyPrint is required to generate PDFs.")
         except Exception as e:
-            print(f"WeasyPrint failed: {e}. Using fallback.")
-            self._create_placeholder_pdf(pdf_path, context)
+            raise RuntimeError(f"WeasyPrint failed: {e}")
         return pdf_path
 
     def _inline_template(self, context: QuoteContext) -> str:
@@ -71,36 +67,16 @@ Quote data: {quote_summary}
 <p class="total">Grand Total: ₹{context.grand_total:,.2f}</p>
 <p><em>{context.notes}</em></p></body></html>"""
 
-    def _create_placeholder_pdf(self, pdf_path: str, context: QuoteContext):
-        try:
-            from reportlab.lib.pagesizes import A4
-            from reportlab.pdfgen import canvas
-            from reportlab.lib.units import mm
-            c = canvas.Canvas(pdf_path, pagesize=A4)
-            w, h = A4
-            c.setFont("Helvetica-Bold", 16)
-            c.drawString(20*mm, h-20*mm, context.company_name)
-            c.setFont("Helvetica", 12)
-            c.drawString(20*mm, h-30*mm, f"Quote #: {context.quote_number}")
-            c.drawString(20*mm, h-40*mm, f"Date: {context.quote_date}")
-            c.drawString(20*mm, h-50*mm, f"Valid Until: {context.valid_until}")
-            y = h - 70*mm
-            c.drawString(20*mm, y, f"Subtotal: ₹{context.subtotal:,.2f}")
-            y -= 10*mm
-            c.drawString(20*mm, y, f"GST ({context.gst_type}): ₹{context.gst_amount:,.2f}")
-            y -= 15*mm
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(20*mm, y, f"Grand Total: ₹{context.grand_total:,.2f}")
-            c.save()
-        except ImportError:
-            open(pdf_path, "w").close()
 
     def generate_whatsapp_summary(self, quote_summary: dict) -> str:
-        prompt = self.WHATSAPP_SUMMARY_PROMPT.format(quote_summary=quote_summary)
-        return self.groq.call(
-            system_prompt="You are a professional steel sales assistant.",
-            user_prompt=prompt, model="llama3-8b-8192", temperature=0.7
-        )
+        # Simple template-based summary (skip LLM to avoid API issues)
+        return f"""📋 Quote #{quote_summary.get('quote_number', 'N/A')}
+
+💰 Total: ₹{quote_summary.get('grand_total', 0):,.2f} (incl. GST)
+
+✅ Valid until: {quote_summary.get('valid_until', '7 days')}
+
+Thank you for your inquiry!"""
 
     def run(self, rfq_id: str, line_items: list, total: float,
             buyer_contact: str, buyer_location: str,
@@ -110,9 +86,14 @@ Quote data: {quote_summary}
         """Run quote generation (synchronous). Returns dict with pdf_path and summary."""
         quote_number = self.generate_quote_number(rfq_id)
         effective_gst = gst_amount if gst_amount is not None else (total * 0.18)
+        company_name = os.getenv("COMPANY_NAME")
+        company_gstin = os.getenv("COMPANY_GSTIN")
+        if not company_name or not company_gstin:
+            raise RuntimeError("COMPANY_NAME and COMPANY_GSTIN must be set.")
+
         context = QuoteContext(
-            company_name=os.getenv("COMPANY_NAME", "Demo Steel Works"),
-            company_gstin=os.getenv("COMPANY_GSTIN", "24XXXXX1234Z5"),
+            company_name=company_name,
+            company_gstin=company_gstin,
             quote_number=quote_number,
             quote_date=datetime.now().strftime("%Y-%m-%d"),
             valid_until=(datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M"),
@@ -125,7 +106,7 @@ Quote data: {quote_summary}
             grand_total=round(total + effective_gst, 2),
             is_codes_referenced=["IS 1786:2008", "IS 2062:2011"],
             notes="Price valid for 24 hours. GST extra as applicable.",
-            bank_details="Bank: SBI, Acc: 1234567890, IFSC: SBIN0001234"
+            bank_details=os.getenv("BANK_DETAILS", "")
         )
         pdf_path = self.generate_pdf(context, rfq_id)
         summary = self.generate_whatsapp_summary({

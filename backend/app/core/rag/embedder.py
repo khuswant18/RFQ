@@ -14,12 +14,8 @@ class Embedder:
             from sentence_transformers import SentenceTransformer
             self.model = SentenceTransformer(model_name)
         except ImportError:
-            print("Warning: sentence-transformers not installed. Using mock embeddings.")
+            raise RuntimeError("sentence-transformers not installed. Install it to generate embeddings.")
     
     def embed(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for a list of texts."""
-        if self.model is None:
-            # Return mock embeddings
-            return [[0.0] * 384 for _ in texts]
-        
         return self.model.encode(texts).tolist()

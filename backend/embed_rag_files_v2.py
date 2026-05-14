@@ -152,7 +152,7 @@ def main():
     print("-" * 60)
     
     # Create a new collection for RAG files
-    collection_name = "rag_documents"
+    collection_name = "external_rag_files"  # Changed from "rag_documents" to match agent queries
     
     try:
         # Add documents in batches to avoid memory issues

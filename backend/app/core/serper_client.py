@@ -16,8 +16,7 @@ class SerperClient:
     def search(self, query: str, num: int = 5) -> List[Dict[str, Any]]:
         """Search the web using Serper API."""
         if not self.api_key:
-            # Return mock results for testing
-            return self._mock_search(query)
+            raise RuntimeError("SERPER_API_KEY not configured.")
 
         headers = {
             "X-API-KEY": self.api_key,
@@ -40,17 +39,3 @@ class SerperClient:
 
         return result.get("organic", [])
 
-    def _mock_search(self, query: str) -> List[Dict[str, Any]]:
-        """Return mock search results for testing."""
-        return [
-            {
-                "title": "MCX Steel Price Today",
-                "link": "https://example.com/steel-price",
-                "snippet": "Current MCX steel price: ₹58,000 per ton for Fe500 TMT bars."
-            },
-            {
-                "title": "Steel Price Update",
-                "link": "https://example.com/update",
-                "snippet": "Steel prices have risen by 2% this week. Current rate: ₹58,500/ton."
-            }
-        ]
