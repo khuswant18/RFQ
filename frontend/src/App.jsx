@@ -1,9 +1,10 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Upload, FileText, Activity, Settings, Zap } from 'lucide-react'
+import { LayoutDashboard, Upload, Activity, Zap, MessageSquare } from 'lucide-react'
 import Dashboard from './pages/Dashboard.jsx'
 import RFQDetail from './pages/RFQDetail.jsx'
 import UploadPage from './pages/Upload.jsx'
+import ChatPage from './pages/Chat.jsx'
 import './index.css'
 
 function NavLink({ to, icon: Icon, children }) {
@@ -42,6 +43,7 @@ function Sidebar() {
         <p className="text-[10px] text-surface-600 uppercase tracking-widest font-semibold mb-3 px-4">Main Menu</p>
         <NavLink to="/" icon={LayoutDashboard}>Dashboard</NavLink>
         <NavLink to="/upload" icon={Upload}>Upload RFQ</NavLink>
+        <NavLink to="/chat" icon={MessageSquare}>Chat Simulator</NavLink>
 
         <p className="text-[10px] text-surface-600 uppercase tracking-widest font-semibold mt-8 mb-3 px-4">System</p>
         <NavLink to="/health" icon={Activity}>Health</NavLink>
@@ -89,6 +91,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/rfq/:rfqId" element={<RFQDetail />} />
               <Route path="/upload" element={<UploadPage />} />
+              <Route path="/chat" element={<ChatPage />} />
               <Route path="/health" element={<HealthPage />} />
             </Routes>
           </div>

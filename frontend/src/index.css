@@ -91,6 +91,16 @@
     @apply glass-card p-6 flex flex-col gap-2 hover:border-primary-500/30 transition-all duration-300;
   }
 
+  .chat-bubble {
+    @apply max-w-[75%] rounded-2xl px-4 py-3 border text-surface-100;
+  }
+  .chat-bubble-user {
+    @apply bg-primary-600/20 border-primary-500/30 shadow-neon;
+  }
+  .chat-bubble-assistant {
+    @apply bg-surface-900/70 border-surface-700/60;
+  }
+
   /* Input fields */
   .input-field {
     @apply w-full px-4 py-3 bg-surface-800/50 border border-surface-700 rounded-xl text-surface-100
